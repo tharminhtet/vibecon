@@ -228,9 +228,19 @@ export default function Home() {
           <h1 className="text-2xl font-semibold text-foreground">
             Recent Changes
           </h1>
-          <p className="text-sm text-muted-foreground mt-1">
-            /{HARDCODED_REPO.split("/")[1]} — {commits.length} commits
-          </p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-sm text-muted-foreground">
+              /{HARDCODED_REPO.split("/")[1]}
+            </p>
+            <a 
+              href={`https://github.com/${HARDCODED_REPO}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <Github className="w-4 h-4" />
+            </a>
+          </div>
         </div>
       </div>
 
