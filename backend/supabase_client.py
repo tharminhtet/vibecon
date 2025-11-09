@@ -81,3 +81,48 @@ def get_node_by_name(name: str) -> Optional[Dict]:
     result = supabase.table("programming_notes").select("*").eq("name", name).execute()
     
     return result.data[0] if result.data else None
+
+
+def get_repo_sync_state(repo_name: str) -> Optional[Dict]:
+    """
+    Get the sync state for a repository.
+    
+    Args:
+        repo_name: The repository name (e.g., "owner/repo")
+    
+    Returns:
+        The sync state data or None
+    """
+    result = supabase.table("repo_sync_state").select("*").eq("repo_name", repo_name).execute()
+    
+    return result.data[0] if result.data else None
+
+
+def update_repo_sync_state(repo_name: str, last_commit_hash: str) -> Dict:
+    """
+    Update or create the sync state for a repository.
+    
+    Args:
+        repo_name: The repository name (e.g., "owner/repo")
+        last_commit_hash: The latest commit hash that was synced
+    
+    Returns:
+        The created/updated record
+    """
+    # Check if repo exists
+    existing = get_repo_sync_state(repo_name)
+    
+    if existing:
+        # Update existing record
+        result = supabase.table("repo_sync_state").update({
+            "last_commit_hash": last_commit_hash,
+            "last_synced_at": "now()"
+        }).eq("repo_name", repo_name).execute()
+    else:
+        # Create new record
+        result = supabase.table("repo_sync_state").insert({
+            "repo_name": repo_name,
+            "last_commit_hash": last_commit_hash
+        }).execute()
+    
+    return result.data[0] if result.data else None
