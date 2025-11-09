@@ -104,7 +104,7 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
         <p className="text-sm text-muted-foreground font-light">{topic.path}</p>
       </div>
 
-      <Tabs defaultValue="explain" className="w-full">
+      <Tabs defaultValue="explain" className="w-full max-w-3xl">
         <TabsList className="grid w-full grid-cols-3 bg-transparent border-b border-border p-0 h-auto gap-8">
           <TabsTrigger
             value="explain"
@@ -126,7 +126,7 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="explain" className="space-y-4 mt-8 min-h-[300px]">
+        <TabsContent value="explain" className="space-y-4 mt-8 min-h-[300px] w-full">
           <div className="space-y-4 text-sm leading-relaxed">
             {topic.description.split("\n").map((paragraph, idx) => (
               <p key={idx} className="text-foreground/80">
@@ -136,13 +136,15 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
           </div>
         </TabsContent>
 
-        <TabsContent value="code" className="space-y-4 mt-8 min-h-[300px]">
-          <pre className="bg-muted/30 border border-border rounded-lg p-6 overflow-x-auto">
-            <code className="text-sm font-mono text-primary whitespace-pre">{topic.code_example}</code>
-          </pre>
+        <TabsContent value="code" className="space-y-4 mt-8 min-h-[300px] w-full">
+          <div className="w-full overflow-hidden">
+            <pre className="bg-muted/30 border border-border rounded-lg p-6 overflow-x-auto max-w-full">
+              <code className="text-sm font-mono text-primary whitespace-pre">{topic.code_example}</code>
+            </pre>
+          </div>
         </TabsContent>
 
-        <TabsContent value="usecases" className="space-y-4 mt-8 min-h-[300px]">
+        <TabsContent value="usecases" className="space-y-4 mt-8 min-h-[300px] w-full">
           <div className="grid grid-cols-2 gap-3">
             {topic.use_cases.map((useCase, idx) => (
               <div key={idx} className="p-4 rounded-lg border border-border hover:border-primary/50 transition-colors">
