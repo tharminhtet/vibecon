@@ -37,6 +37,7 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
   ])
   const [inputValue, setInputValue] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [hasMarkedAsLearned, setHasMarkedAsLearned] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
