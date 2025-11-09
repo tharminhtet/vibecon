@@ -136,13 +136,13 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
           </div>
         </TabsContent>
 
-        <TabsContent value="code" className="space-y-4 mt-8">
+        <TabsContent value="code" className="space-y-4 mt-8 min-h-[300px]">
           <pre className="bg-muted/30 border border-border rounded-lg p-6 overflow-x-auto">
             <code className="text-sm font-mono text-primary whitespace-pre">{topic.code_example}</code>
           </pre>
         </TabsContent>
 
-        <TabsContent value="usecases" className="space-y-4 mt-8">
+        <TabsContent value="usecases" className="space-y-4 mt-8 min-h-[300px]">
           <div className="grid grid-cols-2 gap-3">
             {topic.use_cases.map((useCase, idx) => (
               <div key={idx} className="p-4 rounded-lg border border-border hover:border-primary/50 transition-colors">
