@@ -303,31 +303,32 @@ def save_learning_endpoint(request: SaveLearningRequest):
     Handles parent_temp_id by recursively creating parents.
     """
     try:
-        # If parent_id is provided, save directly
-        if request.parent_id:
-            result = save_learning(
-                name=request.name,
-                description=request.description,
-                parent_id=request.parent_id,
-                github_link=request.github_link,
-            )
-            return result
+        # TEMPORARILY DISABLED: Always save with empty parent
+        # # If parent_id is provided, save directly
+        # if request.parent_id:
+        #     result = save_learning(
+        #         name=request.name,
+        #         description=request.description,
+        #         parent_id=request.parent_id,
+        #         github_link=request.github_link,
+        #     )
+        #     return result
 
-        # If parent_temp_id is provided, we need to handle parent creation
-        # This is a simplified version - in production, you'd need to track temp IDs
-        # and resolve them in order
-        if request.parent_temp_id:
-            # For now, try to find parent by name from the path
-            # This assumes the name contains path information
-            result = save_learning(
-                name=request.name,
-                description=request.description,
-                parent_id=None,
-                github_link=request.github_link,
-            )
-            return result
+        # # If parent_temp_id is provided, we need to handle parent creation
+        # # This is a simplified version - in production, you'd need to track temp IDs
+        # # and resolve them in order
+        # if request.parent_temp_id:
+        #     # For now, try to find parent by name from the path
+        #     # This assumes the name contains path information
+        #     result = save_learning(
+        #         name=request.name,
+        #         description=request.description,
+        #         parent_id=None,
+        #         github_link=request.github_link,
+        #     )
+        #     return result
 
-        # No parent, save as root
+        # Always save with no parent (temporarily)
         result = save_learning(
             name=request.name,
             description=request.description,
