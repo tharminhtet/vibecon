@@ -165,22 +165,27 @@ export default function Home() {
           </div>
         )}
 
-        {/* Commit Input Section */}
+        {/* Sync Button Section */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <div className="flex gap-4">
-            <input
-              type="text"
-              value={sinceCommitId}
-              onChange={(e) => setSinceCommitId(e.target.value)}
-              placeholder="last sync — Enter commit ID to start from"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-gray-700 mb-2">
+                {lastSyncedCommit ? (
+                  <>Last synced: <span className="font-mono text-sm">{lastSyncedCommit.substring(0, 7)}</span></>
+                ) : (
+                  'No previous sync found'
+                )}
+              </p>
+              {isFirstSync && commits.length > 0 && (
+                <p className="text-sm text-blue-600">This is your first sync - showing recent commits</p>
+              )}
+            </div>
             <button
-              onClick={analyzeCommits}
-              disabled={loading || !sinceCommitId}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+              onClick={syncCommits}
+              disabled={loading}
+              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 font-medium"
             >
-              {loading ? 'Loading...' : 'Load Commits'}
+              {loading ? 'Syncing...' : commits.length > 0 ? 'Sync Again' : 'Sync New Changes'}
             </button>
           </div>
         </div>
