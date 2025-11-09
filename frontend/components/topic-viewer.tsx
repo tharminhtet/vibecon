@@ -131,9 +131,9 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
             value="explain" 
             className="absolute inset-0 data-[state=active]:animate-in data-[state=inactive]:animate-out data-[state=active]:fade-in-0 data-[state=inactive]:fade-out-0 data-[state=active]:slide-in-from-bottom-2 data-[state=inactive]:slide-out-to-top-2 duration-300 overflow-y-auto"
           >
-            <div className="space-y-4 text-sm leading-relaxed">
+            <div className="space-y-4 text-sm leading-relaxed font-sans">
               {topic.description.split("\n").map((paragraph, idx) => (
-                <p key={idx} className="text-foreground/80">
+                <p key={idx} className="text-foreground">
                   {paragraph}
                 </p>
               ))}
@@ -146,7 +146,7 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
           >
             <div className="w-full overflow-hidden">
               <pre className="bg-muted/30 border border-border rounded-lg p-6 overflow-x-auto max-w-full">
-                <code className="text-sm font-mono text-primary whitespace-pre">{topic.code_example}</code>
+                <code className="text-sm font-mono text-foreground whitespace-pre">{topic.code_example}</code>
               </pre>
             </div>
           </TabsContent>
@@ -158,7 +158,7 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
             <div className="grid grid-cols-2 gap-3">
               {topic.use_cases.map((useCase, idx) => (
                 <div key={idx} className="p-4 rounded-lg border border-border hover:border-primary/50 transition-colors">
-                  <p className="text-sm text-foreground/80">{useCase}</p>
+                  <p className="text-sm text-foreground">{useCase}</p>
                 </div>
               ))}
             </div>
