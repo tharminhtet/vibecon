@@ -1,0 +1,319 @@
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import List, Optional, Dict
+import os
+from dotenv import load_dotenv
+from openai import OpenAI
+import json
+
+from github_commit_analyzer import GitHubCommitAnalyzer
+from supabase_client import get_knowledge_tree, save_learning, get_node_by_name
+
+load_dotenv()
+
+app = FastAPI()
+
+# CORS configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Initialize clients
+github_token = os.getenv("GITHUB_TOKEN")
+openai_api_key = os.getenv("OPENAI_API_KEY")
+
+if not github_token:
+    raise ValueError("GITHUB_TOKEN not found in environment variables")
+if not openai_api_key:
+    raise ValueError("OPENAI_API_KEY not found in environment variables")
+
+github_analyzer = GitHubCommitAnalyzer(github_token)
+openai_client = OpenAI(api_key=openai_api_key)
+
+
+# Pydantic models
+class AnalyzeCommitsRequest(BaseModel):
+    repo_id: str
+    since_commit_id: str
+    branch: str = "main"
+    max_commits: int = 10
+
+
+class GetCommitDiffsRequest(BaseModel):
+    repo_id: str
+    commit_ids: List[str]
+    include_patch: bool = True
+
+
+class GenerateTopicsRequest(BaseModel):
+    repo_id: str
+    commit_ids: List[str]
+    root_language: str = "Python"
+    user_instructions: Optional[str] = None
+    focus_area: Optional[str] = None
+
+
+class SaveLearningRequest(BaseModel):
+    name: str
+    description: str
+    parent_id: Optional[str] = None
+    parent_temp_id: Optional[str] = None
+    github_link: Optional[str] = None
+
+
+class TopicOutput(BaseModel):
+    path: str
+    description: str
+    parent_id: Optional[str] = None
+    parent_temp_id: Optional[str] = None
+
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "healthy"}
+
+
+@app.get("/api/knowledge_base/{root_name}")
+def get_knowledge_base(root_name: str = "Python"):
+    """
+    Get the knowledge base tree structure.
+    """
+    try:
+        result = get_knowledge_tree(root_name)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/analyze_commits")
+def analyze_commits(request: AnalyzeCommitsRequest):
+    """
+    Get commits newer than a specific commit.
+    """
+    try:
+        commits = github_analyzer.get_commits_since(
+            repo_id=request.repo_id,
+            since_commit_id=request.since_commit_id,
+            branch=request.branch,
+            max_commits=request.max_commits
+        )
+        return {"commits": commits}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/get_commit_diffs")
+def get_commit_diffs(request: GetCommitDiffsRequest):
+    """
+    Get diffs for specified commits.
+    """
+    try:
+        diffs = github_analyzer.get_multiple_commit_diffs(
+            repo_id=request.repo_id,
+            commit_ids=request.commit_ids,
+            include_patch=request.include_patch
+        )
+        return {"diffs": diffs}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/generate_topics")
+def generate_topics(request: GenerateTopicsRequest):
+    """
+    Generate learning topics from commit diffs using LLM.
+    """
+    try:
+        # Get knowledge base tree
+        kb_result = get_knowledge_tree(request.root_language)
+        kb_tree = kb_result["tree_string"]
+        kb_data = kb_result["raw_data"]
+        
+        # Get commit diffs
+        diffs = github_analyzer.get_multiple_commit_diffs(
+            repo_id=request.repo_id,
+            commit_ids=request.commit_ids,
+            include_patch=True
+        )
+        
+        # Build prompt for LLM
+        system_prompt = f"""You are an expert programming educator analyzing code changes to identify learning opportunities.
+
+Your task is to analyze git commit diffs and generate structured learning topics based on new concepts, patterns, or techniques discovered in the code.
+
+Current Knowledge Base Tree:
+{kb_tree}
+
+Rules:
+1. Identify NEW concepts not already in the knowledge base
+2. Create topics with clear, educational descriptions
+3. Properly categorize topics under correct parent (Language Features, Standard Library, External Libraries, or Web Frameworks)
+4. If parent doesn't exist, create it first with a parent_temp_id
+5. Include how the concept was used in the actual code at the end of the description
+6. Path format: "Language/Category/Topic" (e.g., "Python/Language Features/Decorators")
+"""
+        
+        user_prompt = f"""Analyze these commit diffs and generate learning topics:
+
+{diffs}
+"""
+        
+        if request.user_instructions:
+            user_prompt += f"\n\nAdditional instructions: {request.user_instructions}"
+        
+        if request.focus_area:
+            user_prompt += f"\n\nFocus on: {request.focus_area}"
+        
+        # Call OpenAI with structured output
+        response = openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "learning_topics",
+                    "strict": True,
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "topics": {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": {
+                                        "path": {"type": "string"},
+                                        "description": {"type": "string"},
+                                        "parent_id": {"type": ["string", "null"]},
+                                        "parent_temp_id": {"type": ["string", "null"]}
+                                    },
+                                    "required": ["path", "description"],
+                                    "additionalProperties": False
+                                }
+                            }
+                        },
+                        "required": ["topics"],
+                        "additionalProperties": False
+                    }
+                }
+            }
+        )
+        
+        # Parse response
+        topics_data = json.loads(response.choices[0].message.content)
+        
+        # Match parent IDs from knowledge base
+        for topic in topics_data["topics"]:
+            path_parts = topic["path"].split("/")
+            if len(path_parts) >= 2:
+                parent_name = path_parts[-2]
+                # Try to find parent in knowledge base
+                for node in kb_data:
+                    if node["name"] == parent_name:
+                        topic["parent_id"] = node["id"]
+                        topic["parent_temp_id"] = None
+                        break
+        
+        return {
+            "topics": topics_data["topics"],
+            "knowledge_base_tree": kb_tree
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/save_learning")
+def save_learning_endpoint(request: SaveLearningRequest):
+    """
+    Save a new learning topic to the database.
+    Handles parent_temp_id by recursively creating parents.
+    """
+    try:
+        # If parent_id is provided, save directly
+        if request.parent_id:
+            result = save_learning(
+                name=request.name,
+                description=request.description,
+                parent_id=request.parent_id,
+                github_link=request.github_link
+            )
+            return result
+        
+        # If parent_temp_id is provided, we need to handle parent creation
+        # This is a simplified version - in production, you'd need to track temp IDs
+        # and resolve them in order
+        if request.parent_temp_id:
+            # For now, try to find parent by name from the path
+            # This assumes the name contains path information
+            result = save_learning(
+                name=request.name,
+                description=request.description,
+                parent_id=None,
+                github_link=request.github_link
+            )
+            return result
+        
+        # No parent, save as root
+        result = save_learning(
+            name=request.name,
+            description=request.description,
+            parent_id=None,
+            github_link=request.github_link
+        )
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/save_topics_batch")
+def save_topics_batch(topics: List[SaveLearningRequest]):
+    """
+    Save multiple topics, handling parent_temp_id dependencies.
+    """
+    try:
+        temp_id_map = {}  # Map temp IDs to real IDs
+        saved_topics = []
+        
+        # Sort topics to ensure parents are created first
+        # Topics without parent_temp_id or with parent_id come first
+        sorted_topics = sorted(
+            topics,
+            key=lambda t: (t.parent_temp_id is not None and not t.parent_id, t.parent_temp_id or "")
+        )
+        
+        for topic in sorted_topics:
+            parent_id = topic.parent_id
+            
+            # Resolve parent_temp_id to real ID if needed
+            if topic.parent_temp_id and topic.parent_temp_id in temp_id_map:
+                parent_id = temp_id_map[topic.parent_temp_id]
+            
+            # Save the topic
+            result = save_learning(
+                name=topic.name,
+                description=topic.description,
+                parent_id=parent_id,
+                github_link=topic.github_link
+            )
+            
+            saved_topics.append(result)
+            
+            # Store mapping if this topic had a temp ID
+            if hasattr(topic, 'temp_id'):
+                temp_id_map[topic.temp_id] = result["id"]
+        
+        return {"saved_topics": saved_topics}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)
