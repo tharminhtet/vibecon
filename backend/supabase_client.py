@@ -36,6 +36,18 @@ def get_knowledge_tree(root_name: str = "Python") -> Dict:
     }
 
 
+def get_all_knowledge_nodes() -> List[Dict]:
+    """
+    Get all knowledge nodes from the database.
+    
+    Returns:
+        List of all knowledge nodes
+    """
+    result = supabase.table("programming_notes").select("*").order("created_date").execute()
+    
+    return result.data if result.data else []
+
+
 def save_learning(
     name: str,
     description: str,

@@ -8,10 +8,12 @@ import {
   Circle,
   Send,
   ArrowLeft,
+  Map,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import TopicViewer from "@/components/topic-viewer";
+import KnowledgeMap from "@/components/knowledge-map";
 import axios from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
@@ -62,6 +64,9 @@ export default function Home() {
     libraries: true,
   });
   const [customInstructions, setCustomInstructions] = useState("");
+
+  // Knowledge Map state
+  const [showKnowledgeMap, setShowKnowledgeMap] = useState(false);
 
   // Ref for scrolling to topics section
   const topicsSectionRef = useRef<HTMLDivElement>(null);
@@ -315,6 +320,7 @@ export default function Home() {
     setSelectedTopicIndex(null);
     setLearnedTopics(new Set());
     setError("");
+    setShowKnowledgeMap(false);
   };
 
   // If no repo is selected, show landing page
@@ -440,6 +446,15 @@ export default function Home() {
                 )}
               </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowKnowledgeMap(!showKnowledgeMap)}
+              className="flex items-center gap-2 hover:bg-primary/5 hover:border-primary/50 transition-all"
+            >
+              <Map className="w-4 h-4" />
+              <span>Knowledge Map</span>
+            </Button>
           </div>
         </div>
       </div>
@@ -452,353 +467,368 @@ export default function Home() {
         </div>
       )}
 
-      <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Generating Indicator */}
-        {isGenerating && (
-          <div className="mb-8 flex justify-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 border border-primary/30 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-full">
-              <Sparkles className="w-3.5 h-3.5 text-primary animate-spin" />
-              <p className="text-xs font-medium text-foreground">
-                Generating knowledge topics...
-              </p>
-            </div>
+      {/* Show Knowledge Map if toggled */}
+      {showKnowledgeMap ? (
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          <div className="mb-8">
+            <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-2">
+              Knowledge Map
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Explore your learning journey
+            </p>
           </div>
-        )}
+          <KnowledgeMap />
+        </div>
+      ) : (
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          {/* Generating Indicator */}
+          {isGenerating && (
+            <div className="mb-8 flex justify-center">
+              <div className="inline-flex items-center gap-2 px-4 py-2 border border-primary/30 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-full">
+                <Sparkles className="w-3.5 h-3.5 text-primary animate-spin" />
+                <p className="text-xs font-medium text-foreground">
+                  Generating knowledge topics...
+                </p>
+              </div>
+            </div>
+          )}
 
-        <div className="flex gap-8">
-          {/* Timeline */}
-          <div className="flex-1">
-            {isSyncing && commits.length === 0 ? (
-              <div className="py-12 px-8">
-                <div className="max-w-md mx-auto space-y-4">
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-foreground mb-2">
-                      Syncing commits
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Fetching latest changes from repository...
-                    </p>
-                  </div>
-                  <div className="relative h-2 bg-muted rounded-full overflow-hidden">
-                    <div className="absolute h-full w-1/3 bg-gradient-to-r from-transparent via-primary to-transparent animate-loading-slide"></div>
+          <div className="flex gap-8">
+            {/* Timeline */}
+            <div className="flex-1">
+              {isSyncing && commits.length === 0 ? (
+                <div className="py-12 px-8">
+                  <div className="max-w-md mx-auto space-y-4">
+                    <div className="text-center">
+                      <p className="text-sm font-medium text-foreground mb-2">
+                        Syncing commits
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Fetching latest changes from repository...
+                      </p>
+                    </div>
+                    <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                      <div className="absolute h-full w-1/3 bg-gradient-to-r from-transparent via-primary to-transparent animate-loading-slide"></div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ) : (
-              <div className="space-y-0">
-                {commits.map((commit, index) => (
-                  <div
-                    key={commit.commit_id}
-                    className="flex gap-4 animate-fade-in-down"
-                    style={{
-                      animationDelay: `${index * 120}ms`,
-                      animationFillMode: "backwards",
-                    }}
-                  >
-                    <div className="flex flex-col items-center pt-[18px]">
-                      <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0" />
-                      {index < commits.length - 1 && (
-                        <div className="w-0.5 flex-1 bg-border mt-2" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 pb-8">
-                      <div className="w-full group">
-                        <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                          <Checkbox
-                            checked={selectedCommits.has(commit.commit_id)}
-                            onCheckedChange={() =>
-                              toggleSelect(commit.commit_id)
-                            }
-                            className="mt-[3px] flex-shrink-0"
-                          />
-                          <div
-                            className="flex-1 min-w-0 cursor-pointer"
-                            onClick={() => toggleExpand(commit.commit_id)}
-                          >
-                            <div className="flex items-baseline gap-2 mb-0.5">
-                              <span className="text-xs font-mono text-muted-foreground">
-                                {commit.commit_id.slice(0, 7)}
-                              </span>
-                              <span className="text-xs text-muted-foreground">
-                                {index === 0
-                                  ? "newest"
-                                  : index === commits.length - 1
-                                  ? "last sync"
-                                  : `${index}`}
-                              </span>
-                            </div>
-                            <p className="text-sm font-medium text-foreground transition-all duration-200">
-                              {expandedCommits.has(commit.commit_id)
-                                ? commit.description
-                                : truncateDescription(commit.description)}
-                            </p>
-                          </div>
-                          <ChevronDown
-                            className={`w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 mt-0.5 cursor-pointer ${
-                              expandedCommits.has(commit.commit_id)
-                                ? "rotate-180"
-                                : ""
-                            }`}
-                            onClick={() => toggleExpand(commit.commit_id)}
-                          />
-                        </div>
+              ) : (
+                <div className="space-y-0">
+                  {commits.map((commit, index) => (
+                    <div
+                      key={commit.commit_id}
+                      className="flex gap-4 animate-fade-in-down"
+                      style={{
+                        animationDelay: `${index * 120}ms`,
+                        animationFillMode: "backwards",
+                      }}
+                    >
+                      <div className="flex flex-col items-center pt-[18px]">
+                        <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0" />
+                        {index < commits.length - 1 && (
+                          <div className="w-0.5 flex-1 bg-border mt-2" />
+                        )}
                       </div>
 
-                      {expandedCommits.has(commit.commit_id) && (
-                        <div className="mt-3 ml-9 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                          <div className="bg-muted/30 rounded-lg p-4 space-y-3">
-                            <div>
-                              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
-                                Commit Message
-                              </p>
-                              <p className="text-sm text-foreground leading-relaxed">
-                                {commit.description}
+                      <div className="flex-1 pb-8">
+                        <div className="w-full group">
+                          <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                            <Checkbox
+                              checked={selectedCommits.has(commit.commit_id)}
+                              onCheckedChange={() =>
+                                toggleSelect(commit.commit_id)
+                              }
+                              className="mt-[3px] flex-shrink-0"
+                            />
+                            <div
+                              className="flex-1 min-w-0 cursor-pointer"
+                              onClick={() => toggleExpand(commit.commit_id)}
+                            >
+                              <div className="flex items-baseline gap-2 mb-0.5">
+                                <span className="text-xs font-mono text-muted-foreground">
+                                  {commit.commit_id.slice(0, 7)}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  {index === 0
+                                    ? "newest"
+                                    : index === commits.length - 1
+                                    ? "last sync"
+                                    : `${index}`}
+                                </span>
+                              </div>
+                              <p className="text-sm font-medium text-foreground transition-all duration-200">
+                                {expandedCommits.has(commit.commit_id)
+                                  ? commit.description
+                                  : truncateDescription(commit.description)}
                               </p>
                             </div>
-                            <div className="pt-2 border-t border-border/50">
-                              <p className="text-xs font-semibold text-muted-foreground mb-2">
-                                Commit Details
-                              </p>
-                              <div className="space-y-2">
-                                <div className="flex items-start gap-2">
-                                  <span className="text-xs text-muted-foreground min-w-[60px]">
-                                    Hash:
-                                  </span>
-                                  <code className="text-xs font-mono text-foreground bg-muted px-1.5 py-0.5 rounded">
-                                    {commit.commit_id}
-                                  </code>
-                                </div>
-                                <div className="flex items-start gap-2">
-                                  <span className="text-xs text-muted-foreground min-w-[60px]">
-                                    Link:
-                                  </span>
-                                  <a
-                                    href={`https://github.com/${currentRepo}/commit/${commit.commit_id}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="text-xs text-primary hover:underline"
-                                  >
-                                    View on GitHub →
-                                  </a>
+                            <ChevronDown
+                              className={`w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 mt-0.5 cursor-pointer ${
+                                expandedCommits.has(commit.commit_id)
+                                  ? "rotate-180"
+                                  : ""
+                              }`}
+                              onClick={() => toggleExpand(commit.commit_id)}
+                            />
+                          </div>
+                        </div>
+
+                        {expandedCommits.has(commit.commit_id) && (
+                          <div className="mt-3 ml-9 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                            <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                              <div>
+                                <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+                                  Commit Message
+                                </p>
+                                <p className="text-sm text-foreground leading-relaxed">
+                                  {commit.description}
+                                </p>
+                              </div>
+                              <div className="pt-2 border-t border-border/50">
+                                <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                  Commit Details
+                                </p>
+                                <div className="space-y-2">
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-xs text-muted-foreground min-w-[60px]">
+                                      Hash:
+                                    </span>
+                                    <code className="text-xs font-mono text-foreground bg-muted px-1.5 py-0.5 rounded">
+                                      {commit.commit_id}
+                                    </code>
+                                  </div>
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-xs text-muted-foreground min-w-[60px]">
+                                      Link:
+                                    </span>
+                                    <a
+                                      href={`https://github.com/${currentRepo}/commit/${commit.commit_id}`}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs text-primary hover:underline"
+                                    >
+                                      View on GitHub →
+                                    </a>
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="w-72 flex-shrink-0">
-            <div className="sticky top-8 space-y-4">
-              {/* Generate Knowledge */}
-              <div className="border border-border rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Generate Knowledge
-                  </h3>
-                </div>
-                <Button
-                  size="sm"
-                  className="w-full mb-2 text-xs h-8 hover:bg-primary/80 hover:scale-[1.02] transition-all relative overflow-hidden group"
-                  onClick={generateTopics}
-                  disabled={
-                    isSyncing || isGenerating || selectedCommits.size === 0
-                  }
-                >
-                  {isGenerating ? (
-                    <>
-                      <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary animate-shimmer bg-[length:200%_100%]"></div>
-                      <span className="relative flex items-center gap-2">
-                        <Sparkles className="w-3.5 h-3.5 animate-pulse" />
-                        <span className="animate-pulse">Generating...</span>
-                      </span>
-                    </>
-                  ) : (
-                    <span className="flex items-center gap-2">
-                      <Sparkles className="w-3.5 h-3.5 transition-transform group-hover:rotate-12" />
-                      Generate
-                    </span>
-                  )}
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="w-full text-xs h-8 bg-transparent hover:!bg-muted hover:!text-foreground hover:border-muted-foreground/40 transition-all"
-                  onClick={() => setShowSettings(!showSettings)}
-                >
-                  {showSettings ? "Hide" : "Show"} Settings
-                </Button>
-              </div>
-
-              {/* Settings */}
-              <div
-                className={`overflow-hidden transition-all duration-300 ease-in-out ${
-                  showSettings ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-                }`}
-              >
-                <div className="border border-border rounded-lg p-4 text-sm space-y-3">
-                  <div>
-                    <label className="text-xs font-semibold text-foreground block mb-2">
-                      Focus Areas
-                    </label>
-                    <div className="space-y-1.5">
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="language"
-                          checked={filters.language}
-                          onCheckedChange={(checked) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              language: checked as boolean,
-                            }))
-                          }
-                        />
-                        <label
-                          htmlFor="language"
-                          className="text-xs text-muted-foreground cursor-pointer"
-                        >
-                          Languages
-                        </label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="frameworks"
-                          checked={filters.frameworks}
-                          onCheckedChange={(checked) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              frameworks: checked as boolean,
-                            }))
-                          }
-                        />
-                        <label
-                          htmlFor="frameworks"
-                          className="text-xs text-muted-foreground cursor-pointer"
-                        >
-                          Frameworks
-                        </label>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Checkbox
-                          id="libraries"
-                          checked={filters.libraries}
-                          onCheckedChange={(checked) =>
-                            setFilters((prev) => ({
-                              ...prev,
-                              libraries: checked as boolean,
-                            }))
-                          }
-                        />
-                        <label
-                          htmlFor="libraries"
-                          className="text-xs text-muted-foreground cursor-pointer"
-                        >
-                          Libraries
-                        </label>
+                        )}
                       </div>
                     </div>
-                  </div>
-                  <div>
-                    <label
-                      htmlFor="instructions"
-                      className="text-xs font-semibold text-foreground block mb-1.5"
-                    >
-                      Custom Instructions
-                    </label>
-                    <textarea
-                      id="instructions"
-                      placeholder="Add context..."
-                      value={customInstructions}
-                      onChange={(e) => setCustomInstructions(e.target.value)}
-                      className="w-full px-2 py-1.5 bg-muted border border-border rounded text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
-                      rows={3}
-                    />
-                  </div>
+                  ))}
                 </div>
-              </div>
+              )}
             </div>
-          </div>
-        </div>
 
-        {/* Generated Topics - Beautiful Learning UI */}
-        {topics.length > 0 && (
-          <div className="mt-12 border-t border-border pt-8">
-            <div className="flex gap-8">
-              {/* Topics Sidebar */}
-              <aside className="w-64 flex-shrink-0">
-                <div className="sticky top-8">
-                  <p
-                    ref={topicsSectionRef}
-                    className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4"
+            {/* Sidebar */}
+            <div className="w-72 flex-shrink-0">
+              <div className="sticky top-8 space-y-4">
+                {/* Generate Knowledge */}
+                <div className="border border-border rounded-lg p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Generate Knowledge
+                    </h3>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full mb-2 text-xs h-8 hover:bg-primary/80 hover:scale-[1.02] transition-all relative overflow-hidden group"
+                    onClick={generateTopics}
+                    disabled={
+                      isSyncing || isGenerating || selectedCommits.size === 0
+                    }
                   >
-                    Topics ({topics.length})
-                  </p>
-                  <div className="space-y-2">
-                    {topics.map((topic, index) => {
-                      const topicName =
-                        topic.path.split("/").pop() || topic.path;
-                      const isSelected = selectedTopicIndex === index;
-                      const isLearned = learnedTopics.has(index);
+                    {isGenerating ? (
+                      <>
+                        <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary animate-shimmer bg-[length:200%_100%]"></div>
+                        <span className="relative flex items-center gap-2">
+                          <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                          <span className="animate-pulse">Generating...</span>
+                        </span>
+                      </>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 transition-transform group-hover:rotate-12" />
+                        Generate
+                      </span>
+                    )}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full text-xs h-8 bg-transparent hover:!bg-muted hover:!text-foreground hover:border-muted-foreground/40 transition-all"
+                    onClick={() => setShowSettings(!showSettings)}
+                  >
+                    {showSettings ? "Hide" : "Show"} Settings
+                  </Button>
+                </div>
 
-                      return (
-                        <button
-                          key={index}
-                          onClick={() => setSelectedTopicIndex(index)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors hover:bg-muted/50 text-left relative ${
-                            isSelected ? "bg-muted/50" : ""
-                          }`}
-                        >
-                          {isSelected && (
-                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r" />
-                          )}
-                          {isLearned ? (
-                            <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
-                          ) : (
-                            <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                          )}
-                          <span
-                            className={
-                              isLearned
-                                ? "text-foreground"
-                                : "text-muted-foreground"
+                {/* Settings */}
+                <div
+                  className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                    showSettings ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                  }`}
+                >
+                  <div className="border border-border rounded-lg p-4 text-sm space-y-3">
+                    <div>
+                      <label className="text-xs font-semibold text-foreground block mb-2">
+                        Focus Areas
+                      </label>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="language"
+                            checked={filters.language}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                language: checked as boolean,
+                              }))
                             }
+                          />
+                          <label
+                            htmlFor="language"
+                            className="text-xs text-muted-foreground cursor-pointer"
                           >
-                            {topicName}
-                          </span>
-                        </button>
-                      );
-                    })}
+                            Languages
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="frameworks"
+                            checked={filters.frameworks}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                frameworks: checked as boolean,
+                              }))
+                            }
+                          />
+                          <label
+                            htmlFor="frameworks"
+                            className="text-xs text-muted-foreground cursor-pointer"
+                          >
+                            Frameworks
+                          </label>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="libraries"
+                            checked={filters.libraries}
+                            onCheckedChange={(checked) =>
+                              setFilters((prev) => ({
+                                ...prev,
+                                libraries: checked as boolean,
+                              }))
+                            }
+                          />
+                          <label
+                            htmlFor="libraries"
+                            className="text-xs text-muted-foreground cursor-pointer"
+                          >
+                            Libraries
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <label
+                        htmlFor="instructions"
+                        className="text-xs font-semibold text-foreground block mb-1.5"
+                      >
+                        Custom Instructions
+                      </label>
+                      <textarea
+                        id="instructions"
+                        placeholder="Add context..."
+                        value={customInstructions}
+                        onChange={(e) => setCustomInstructions(e.target.value)}
+                        className="w-full px-2 py-1.5 bg-muted border border-border rounded text-xs text-foreground placeholder-muted-foreground focus:outline-none focus:ring-1 focus:ring-accent"
+                        rows={3}
+                      />
+                    </div>
                   </div>
                 </div>
-              </aside>
-
-              {/* Topic Viewer */}
-              <div className="flex-1">
-                <TopicViewer
-                  topic={
-                    selectedTopicIndex !== null
-                      ? topics[selectedTopicIndex]
-                      : null
-                  }
-                  onSave={saveTopic}
-                  onSkip={skipTopic}
-                  isLearned={
-                    selectedTopicIndex !== null &&
-                    learnedTopics.has(selectedTopicIndex)
-                  }
-                />
               </div>
             </div>
           </div>
-        )}
-      </div>
+
+          {/* Generated Topics - Beautiful Learning UI */}
+          {topics.length > 0 && (
+            <div className="mt-12 border-t border-border pt-8">
+              <div className="flex gap-8">
+                {/* Topics Sidebar */}
+                <aside className="w-64 flex-shrink-0">
+                  <div className="sticky top-8">
+                    <p
+                      ref={topicsSectionRef}
+                      className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4"
+                    >
+                      Topics ({topics.length})
+                    </p>
+                    <div className="space-y-2">
+                      {topics.map((topic, index) => {
+                        const topicName =
+                          topic.path.split("/").pop() || topic.path;
+                        const isSelected = selectedTopicIndex === index;
+                        const isLearned = learnedTopics.has(index);
+
+                        return (
+                          <button
+                            key={index}
+                            onClick={() => setSelectedTopicIndex(index)}
+                            className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors hover:bg-muted/50 text-left relative ${
+                              isSelected ? "bg-muted/50" : ""
+                            }`}
+                          >
+                            {isSelected && (
+                              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r" />
+                            )}
+                            {isLearned ? (
+                              <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
+                            ) : (
+                              <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            )}
+                            <span
+                              className={
+                                isLearned
+                                  ? "text-foreground"
+                                  : "text-muted-foreground"
+                              }
+                            >
+                              {topicName}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </aside>
+
+                {/* Topic Viewer */}
+                <div className="flex-1">
+                  <TopicViewer
+                    topic={
+                      selectedTopicIndex !== null
+                        ? topics[selectedTopicIndex]
+                        : null
+                    }
+                    onSave={saveTopic}
+                    onSkip={skipTopic}
+                    isLearned={
+                      selectedTopicIndex !== null &&
+                      learnedTopics.has(selectedTopicIndex)
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

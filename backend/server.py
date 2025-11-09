@@ -10,6 +10,7 @@ import json
 from github_commit_analyzer import GitHubCommitAnalyzer
 from supabase_client import (
     get_knowledge_tree,
+    get_all_knowledge_nodes,
     save_learning,
     get_node_by_name,
     get_repo_sync_state,
@@ -100,6 +101,18 @@ def get_knowledge_base(root_name: str = "Python"):
     try:
         result = get_knowledge_tree(root_name)
         return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/knowledge_base_all")
+def get_knowledge_base_all():
+    """
+    Get all knowledge nodes.
+    """
+    try:
+        nodes = get_all_knowledge_nodes()
+        return {"nodes": nodes}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
