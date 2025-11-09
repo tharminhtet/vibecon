@@ -9,11 +9,11 @@ import json
 
 from github_commit_analyzer import GitHubCommitAnalyzer
 from supabase_client import (
-    get_knowledge_tree, 
-    save_learning, 
+    get_knowledge_tree,
+    save_learning,
     get_node_by_name,
     get_repo_sync_state,
-    update_repo_sync_state
+    update_repo_sync_state,
 )
 
 load_dotenv()
@@ -85,11 +85,7 @@ def health_check():
 
 @app.get("/api/test")
 def test_endpoint():
-    return {
-        "status": "ok",
-        "message": "Backend is reachable",
-        "timestamp": "now"
-    }
+    return {"status": "ok", "message": "Backend is reachable", "timestamp": "now"}
 
 
 @app.get("/api/knowledge_base/{root_name}")
@@ -113,7 +109,7 @@ def analyze_commits(request: AnalyzeCommitsRequest):
     try:
         # Get the last synced commit for this repo
         sync_state = get_repo_sync_state(request.repo_id)
-        
+
         if sync_state:
             # Get commits since last sync
             since_commit_id = sync_state["last_commit_hash"]
@@ -121,35 +117,37 @@ def analyze_commits(request: AnalyzeCommitsRequest):
                 repo_id=request.repo_id,
                 since_commit_id=since_commit_id,
                 branch=request.branch,
-                max_commits=request.max_commits
+                max_commits=request.max_commits,
             )
         else:
             # First time syncing this repo - get recent commits
             # We'll use a special approach: get the latest commits
             url = f"https://api.github.com/repos/{request.repo_id}/commits"
             params = {"sha": request.branch, "per_page": min(request.max_commits, 10)}
-            
+
             response = github_analyzer._make_request(url, params)
             commits = [
                 {
                     "commit_id": commit["sha"],
-                    "description": commit["commit"]["message"].split("\n")[0]
+                    "description": commit["commit"]["message"].split("\n")[0],
                 }
                 for commit in response
             ]
-            
+
             # Store the most recent commit as the initial sync point
             if commits:
                 update_repo_sync_state(request.repo_id, commits[0]["commit_id"])
-        
+
         # Update sync state with the newest commit after successful fetch
         if commits and sync_state:
             update_repo_sync_state(request.repo_id, commits[0]["commit_id"])
-        
+
         return {
             "commits": commits,
             "is_first_sync": sync_state is None,
-            "last_synced_commit": sync_state["last_commit_hash"] if sync_state else None
+            "last_synced_commit": (
+                sync_state["last_commit_hash"] if sync_state else None
+            ),
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -164,7 +162,7 @@ def get_commit_diffs(request: GetCommitDiffsRequest):
         diffs = github_analyzer.get_multiple_commit_diffs(
             repo_id=request.repo_id,
             commit_ids=request.commit_ids,
-            include_patch=request.include_patch
+            include_patch=request.include_patch,
         )
         return {"diffs": diffs}
     except Exception as e:
@@ -181,14 +179,12 @@ def generate_topics(request: GenerateTopicsRequest):
         kb_result = get_knowledge_tree(request.root_language)
         kb_tree = kb_result["tree_string"]
         kb_data = kb_result["raw_data"]
-        
+
         # Get commit diffs
         diffs = github_analyzer.get_multiple_commit_diffs(
-            repo_id=request.repo_id,
-            commit_ids=request.commit_ids,
-            include_patch=True
+            repo_id=request.repo_id, commit_ids=request.commit_ids, include_patch=True
         )
-        
+
         # Build prompt for LLM
         system_prompt = f"""You are an expert programming educator analyzing code changes to identify learning opportunities.
 
@@ -205,24 +201,24 @@ Rules:
 5. Include how the concept was used in the actual code at the end of the description
 6. Path format: "Language/Category/Topic" (e.g., "Python/Language Features/Decorators")
 """
-        
+
         user_prompt = f"""Analyze these commit diffs and generate learning topics:
 
 {diffs}
 """
-        
+
         if request.user_instructions:
             user_prompt += f"\n\nAdditional instructions: {request.user_instructions}"
-        
+
         if request.focus_area:
             user_prompt += f"\n\nFocus on: {request.focus_area}"
-        
+
         # Call OpenAI with structured output
         response = openai_client.chat.completions.create(
             model="gpt-4o",
             messages=[
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt}
+                {"role": "user", "content": user_prompt},
             ],
             response_format={
                 "type": "json_schema",
@@ -240,23 +236,28 @@ Rules:
                                         "path": {"type": "string"},
                                         "description": {"type": "string"},
                                         "parent_id": {"type": ["string", "null"]},
-                                        "parent_temp_id": {"type": ["string", "null"]}
+                                        "parent_temp_id": {"type": ["string", "null"]},
                                     },
-                                    "required": ["path", "description"],
-                                    "additionalProperties": False
-                                }
+                                    "required": [
+                                        "path",
+                                        "description",
+                                        "parent_id",
+                                        "parent_temp_id",
+                                    ],
+                                    "additionalProperties": False,
+                                },
                             }
                         },
                         "required": ["topics"],
-                        "additionalProperties": False
-                    }
-                }
-            }
+                        "additionalProperties": False,
+                    },
+                },
+            },
         )
-        
+
         # Parse response
         topics_data = json.loads(response.choices[0].message.content)
-        
+
         # Match parent IDs from knowledge base
         for topic in topics_data["topics"]:
             path_parts = topic["path"].split("/")
@@ -268,11 +269,8 @@ Rules:
                         topic["parent_id"] = node["id"]
                         topic["parent_temp_id"] = None
                         break
-        
-        return {
-            "topics": topics_data["topics"],
-            "knowledge_base_tree": kb_tree
-        }
+
+        return {"topics": topics_data["topics"], "knowledge_base_tree": kb_tree}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -290,10 +288,10 @@ def save_learning_endpoint(request: SaveLearningRequest):
                 name=request.name,
                 description=request.description,
                 parent_id=request.parent_id,
-                github_link=request.github_link
+                github_link=request.github_link,
             )
             return result
-        
+
         # If parent_temp_id is provided, we need to handle parent creation
         # This is a simplified version - in production, you'd need to track temp IDs
         # and resolve them in order
@@ -304,16 +302,16 @@ def save_learning_endpoint(request: SaveLearningRequest):
                 name=request.name,
                 description=request.description,
                 parent_id=None,
-                github_link=request.github_link
+                github_link=request.github_link,
             )
             return result
-        
+
         # No parent, save as root
         result = save_learning(
             name=request.name,
             description=request.description,
             parent_id=None,
-            github_link=request.github_link
+            github_link=request.github_link,
         )
         return result
     except Exception as e:
@@ -328,35 +326,38 @@ def save_topics_batch(topics: List[SaveLearningRequest]):
     try:
         temp_id_map = {}  # Map temp IDs to real IDs
         saved_topics = []
-        
+
         # Sort topics to ensure parents are created first
         # Topics without parent_temp_id or with parent_id come first
         sorted_topics = sorted(
             topics,
-            key=lambda t: (t.parent_temp_id is not None and not t.parent_id, t.parent_temp_id or "")
+            key=lambda t: (
+                t.parent_temp_id is not None and not t.parent_id,
+                t.parent_temp_id or "",
+            ),
         )
-        
+
         for topic in sorted_topics:
             parent_id = topic.parent_id
-            
+
             # Resolve parent_temp_id to real ID if needed
             if topic.parent_temp_id and topic.parent_temp_id in temp_id_map:
                 parent_id = temp_id_map[topic.parent_temp_id]
-            
+
             # Save the topic
             result = save_learning(
                 name=topic.name,
                 description=topic.description,
                 parent_id=parent_id,
-                github_link=topic.github_link
+                github_link=topic.github_link,
             )
-            
+
             saved_topics.append(result)
-            
+
             # Store mapping if this topic had a temp ID
-            if hasattr(topic, 'temp_id'):
+            if hasattr(topic, "temp_id"):
                 temp_id_map[topic.temp_id] = result["id"]
-        
+
         return {"saved_topics": saved_topics}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -364,4 +365,5 @@ def save_topics_batch(topics: List[SaveLearningRequest]):
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8001)
