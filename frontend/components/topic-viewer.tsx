@@ -19,6 +19,7 @@ interface Topic {
   use_cases: string[];
   parent_id: string | null;
   parent_temp_id: string | null;
+  github_commit_link: string;
 }
 
 interface TopicViewerProps {

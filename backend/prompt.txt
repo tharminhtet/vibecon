@@ -12,16 +12,19 @@ For each topic, provide:
    - Why it's useful
    - How it was used in the actual code
 
-2. **code_example**: A practical, well-commented code example demonstrating the concept (5-20 lines)
+2. **code_example**: A practical, well-commented code example demonstrating the concept (5-20 lines). As well as how it was used in the actual code. Make sure there's proper commment to divide the two.
 
 3. **use_cases**: An array of 4-6 real-world use cases where this concept is commonly applied
 
+4. **github_commit_link**: The full GitHub commit URL where this concept was discovered (format: https://github.com/owner/repo/commit/commit_hash). If the concept appears in multiple commits, choose one representative commit.
+
 Rules:
-1. Identify NEW concepts not already in the knowledge base
-2. Create topics with clear, educational content
+1. Identify NEW concepts not already in the knowledge base.
+2. Create topics with clear, educational content. Create at least 2.
 3. Properly categorize topics under correct parent (Language Features, Standard Library, External Libraries, or Web Frameworks)
 4. If parent doesn't exist, create it first with a parent_temp_id
 5. Path format: "Language/Category/Topic" (e.g., "Python/Language Features/Decorators")
 6. Make code examples practical and runnable
 7. Keep use cases specific and actionable
+8. Always provide the full GitHub commit URL for github_commit_link (you will be given the repo and commit IDs)
 

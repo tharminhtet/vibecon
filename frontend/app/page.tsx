@@ -28,6 +28,7 @@ interface Topic {
   use_cases: string[];
   parent_id: string | null;
   parent_temp_id: string | null;
+  github_commit_link: string;
 }
 
 export default function Home() {
@@ -257,7 +258,7 @@ export default function Home() {
         description: topic.description,
         parent_id: topic.parent_id,
         parent_temp_id: topic.parent_temp_id,
-        github_link: `https://github.com/${currentRepo}`,
+        github_link: topic.github_commit_link,
       });
 
       // Mark as learned instead of removing
@@ -397,28 +398,38 @@ export default function Home() {
               >
                 <ArrowLeft className="w-5 h-5 text-muted-foreground hover:text-foreground" />
               </button>
-              <div className="flex items-center gap-2">
-                <p className="text-md text-muted-foreground">
-                  /{currentRepo.split("/")[1]}
-                </p>
-                <a
-                  href={`https://github.com/${currentRepo}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#47494b] hover:bg-[] transition-colors"
-                  title="View on GitHub"
-                >
-                  <svg
-                    height="16"
-                    width="16"
-                    viewBox="0 0 16 16"
-                    fill="white"
-                    aria-hidden="true"
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="text-md text-muted-foreground">
+                    /{currentRepo.split("/")[1]}
+                  </p>
+                  <a
+                    href={`https://github.com/${currentRepo}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#47494b] hover:bg-[] transition-colors"
+                    title="View on GitHub"
                   >
-                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
-                  </svg>
-                  <span className="text-xs font-medium text-white">GitHub</span>
-                </a>
+                    <svg
+                      height="16"
+                      width="16"
+                      viewBox="0 0 16 16"
+                      fill="white"
+                      aria-hidden="true"
+                    >
+                      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                    </svg>
+                    <span className="text-xs font-medium text-white">
+                      GitHub
+                    </span>
+                  </a>
+                </div>
+                {commits.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {commits.length} commit{commits.length !== 1 ? "s" : ""}{" "}
+                    since last session
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -436,22 +447,12 @@ export default function Home() {
       <div className="max-w-5xl mx-auto px-6 py-8">
         {/* Generating Indicator */}
         {isGenerating && (
-          <div className="mb-8 border border-primary/30 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-lg p-4 animate-pulse">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <Sparkles className="w-5 h-5 text-primary animate-spin" />
-                <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-foreground">
-                  Generating Knowledge Topics
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Analyzing {selectedCommits.size} commit
-                  {selectedCommits.size !== 1 ? "s" : ""} and extracting
-                  learning topics...
-                </p>
-              </div>
+          <div className="mb-8 flex justify-center">
+            <div className="inline-flex items-center gap-2 px-4 py-2 border border-primary/30 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-full">
+              <Sparkles className="w-3.5 h-3.5 text-primary animate-spin" />
+              <p className="text-xs font-medium text-foreground">
+                Generating knowledge topics...
+              </p>
             </div>
           </div>
         )}

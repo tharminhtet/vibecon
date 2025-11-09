@@ -79,6 +79,7 @@ class TopicOutput(BaseModel):
     use_cases: List[str]
     parent_id: Optional[str] = None
     parent_temp_id: Optional[str] = None
+    github_commit_link: str
 
 
 @app.get("/api/health")
@@ -199,6 +200,9 @@ def generate_topics(request: GenerateTopicsRequest):
 
         user_prompt = f"""Analyze these commit diffs and generate learning topics:
 
+Repository: {request.repo_id}
+Commits being analyzed: {', '.join(request.commit_ids)}
+
 {diffs}
 """
 
@@ -237,6 +241,7 @@ def generate_topics(request: GenerateTopicsRequest):
                                         },
                                         "parent_id": {"type": ["string", "null"]},
                                         "parent_temp_id": {"type": ["string", "null"]},
+                                        "github_commit_link": {"type": "string"},
                                     },
                                     "required": [
                                         "path",
@@ -245,6 +250,7 @@ def generate_topics(request: GenerateTopicsRequest):
                                         "use_cases",
                                         "parent_id",
                                         "parent_temp_id",
+                                        "github_commit_link",
                                     ],
                                     "additionalProperties": False,
                                 },
