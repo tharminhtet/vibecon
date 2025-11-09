@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronDown, Sparkles, CheckCircle, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,7 +33,8 @@ export default function Home() {
     new Set()
   );
   const [showSettings, setShowSettings] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>("");
 
   // Topics state
@@ -51,6 +52,9 @@ export default function Home() {
   });
   const [customInstructions, setCustomInstructions] = useState("");
 
+  // Ref for scrolling to topics section
+  const topicsSectionRef = useRef<HTMLDivElement>(null);
+
   // Auto-sync on page load
   useEffect(() => {
     syncCommits();
@@ -58,10 +62,8 @@ export default function Home() {
   }, []);
 
   const syncCommits = async () => {
-    setLoading(true);
+    setIsSyncing(true);
     setError("");
-    console.log("Syncing commits from:", HARDCODED_REPO);
-    console.log("API URL:", API_URL);
 
     // Test health endpoint first
     try {
@@ -75,7 +77,7 @@ export default function Home() {
       setError(
         `Cannot connect to backend at ${API_URL}: ${healthError.message}`
       );
-      setLoading(false);
+      setIsSyncing(false);
       return;
     }
 
@@ -106,7 +108,7 @@ export default function Home() {
         err.response?.data?.detail || err.message || "Failed to sync commits"
       );
     } finally {
-      setLoading(false);
+      setIsSyncing(false);
     }
   };
 
@@ -136,7 +138,7 @@ export default function Home() {
       return;
     }
 
-    setLoading(true);
+    setIsGenerating(true);
     setError("");
     try {
       const focusAreas = [];
@@ -166,22 +168,44 @@ export default function Home() {
         max_commits: 20,
         update_last_sync: true,
       });
+
+      // Scroll to topics section with offset for better positioning
+      requestAnimationFrame(() => {
+        if (topicsSectionRef.current) {
+          const yOffset = -120; // Scroll a bit higher than the element
+          const elementTop =
+            topicsSectionRef.current.getBoundingClientRect().top;
+          const scrollTop =
+            window.pageYOffset || document.documentElement.scrollTop;
+          const targetPosition = elementTop + scrollTop + yOffset;
+
+          window.scrollTo({ top: targetPosition, behavior: "smooth" });
+        }
+      });
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to generate topics");
     } finally {
-      setLoading(false);
+      setIsGenerating(false);
     }
   };
 
-  const truncateDescription = (desc: string, maxLength: number = 80) => {
+  const truncateDescription = (desc: string, maxLength: number = 100) => {
     if (desc.length <= maxLength) return desc;
-    return desc.substring(0, maxLength) + "...";
+
+    // Find the last space before maxLength to avoid cutting words
+    const truncated = desc.substring(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(" ");
+
+    if (lastSpace > 0) {
+      return desc.substring(0, lastSpace) + "...";
+    }
+
+    return truncated + "...";
   };
 
   const saveTopic = async () => {
     if (selectedTopicIndex === null) return;
 
-    setLoading(true);
     setError("");
     try {
       const topic = topics[selectedTopicIndex];
@@ -205,8 +229,6 @@ export default function Home() {
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to save topic");
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -227,36 +249,30 @@ export default function Home() {
         <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-semibold text-foreground">
-                Recent Changes
-              </h1>
               <div className="flex items-center gap-2 mt-1">
-                <p className="text-sm text-muted-foreground">
+                <p className="text-md text-muted-foreground">
                   /{HARDCODED_REPO.split("/")[1]}
                 </p>
-                <a 
+                <a
                   href={`https://github.com/${HARDCODED_REPO}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="hover:opacity-80 transition-opacity"
+                  className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#47494b] hover:bg-[] transition-colors"
+                  title="View on GitHub"
                 >
-                  <div className="bg-black rounded p-1 flex items-center justify-center">
-                    <svg height="16" width="16" viewBox="0 0 16 16" fill="white">
-                      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/>
-                    </svg>
-                  </div>
+                  <svg
+                    height="16"
+                    width="16"
+                    viewBox="0 0 16 16"
+                    fill="white"
+                    aria-hidden="true"
+                  >
+                    <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z" />
+                  </svg>
+                  <span className="text-xs font-medium text-white">GitHub</span>
                 </a>
               </div>
             </div>
-            {loading && commits.length === 0 && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Syncing...</span>
-              </div>
-            )}
           </div>
         </div>
       </div>
@@ -269,82 +285,156 @@ export default function Home() {
         </div>
       )}
 
-      {loading && commits.length === 0 && (
-        <div className="max-w-5xl mx-auto px-6 py-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          <p className="mt-4 text-muted-foreground">Syncing commits...</p>
-        </div>
-      )}
-
       <div className="max-w-5xl mx-auto px-6 py-8">
+        {/* Generating Indicator */}
+        {isGenerating && (
+          <div className="mb-8 border border-primary/30 bg-gradient-to-r from-primary/5 via-accent/5 to-primary/5 rounded-lg p-4 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <Sparkles className="w-5 h-5 text-primary animate-spin" />
+                <div className="absolute inset-0 bg-primary/20 rounded-full animate-ping"></div>
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  Generating Knowledge Topics
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Analyzing {selectedCommits.size} commit
+                  {selectedCommits.size !== 1 ? "s" : ""} and extracting
+                  learning topics...
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="flex gap-8">
           {/* Timeline */}
           <div className="flex-1">
-            <div className="space-y-0">
-              {commits.map((commit, index) => (
-                <div key={commit.commit_id} className="flex gap-4">
-                  <div className="flex flex-col items-center">
-                    <div className="w-3 h-3 rounded-full bg-primary mt-2.5" />
-                    {index < commits.length - 1 && (
-                      <div className="w-0.5 flex-1 bg-border mt-2 min-h-[6rem]" />
-                    )}
+            {isSyncing && commits.length === 0 ? (
+              <div className="py-12 px-8">
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="text-center">
+                    <p className="text-sm font-medium text-foreground mb-2">
+                      Syncing commits
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Fetching latest changes from repository...
+                    </p>
                   </div>
-
-                  <div className="flex-1 pb-8">
-                    <div
-                      className="w-full group"
-                    >
-                      <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
-                        <Checkbox
-                          checked={selectedCommits.has(commit.commit_id)}
-                          onCheckedChange={() => toggleSelect(commit.commit_id)}
-                          className="mt-0.5 flex-shrink-0"
-                        />
-                        <div 
-                          className="flex-1 min-w-0 cursor-pointer"
-                          onClick={() => toggleExpand(commit.commit_id)}
-                        >
-                          <div className="flex items-baseline gap-2 mb-0.5">
-                            <span className="text-xs font-mono text-muted-foreground">
-                              {commit.commit_id.slice(0, 7)}
-                            </span>
-                            <span className="text-xs text-muted-foreground">
-                              {index === 0
-                                ? "newest"
-                                : index === commits.length - 1
-                                ? "last sync"
-                                : `${index}`}
-                            </span>
-                          </div>
-                          <p className="text-sm font-medium text-foreground">
-                            {expandedCommits.has(commit.commit_id)
-                              ? commit.description
-                              : truncateDescription(commit.description)}
-                          </p>
-                        </div>
-                        <ChevronDown
-                          className={`w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 mt-0.5 cursor-pointer ${
-                            expandedCommits.has(commit.commit_id)
-                              ? "rotate-180"
-                              : ""
-                          }`}
-                          onClick={() => toggleExpand(commit.commit_id)}
-                        />
-                      </div>
-                    </div>
-
-                    {expandedCommits.has(commit.commit_id) && (
-                      <div className="mt-2 ml-3 pl-3 border-l-2 border-accent/40 space-y-2">
-                        <div className="bg-muted/30 rounded p-3 font-mono text-xs text-muted-foreground space-y-1">
-                          <div>commit: {commit.commit_id}</div>
-                          <div>repo: {HARDCODED_REPO}</div>
-                        </div>
-                      </div>
-                    )}
+                  <div className="relative h-2 bg-muted rounded-full overflow-hidden">
+                    <div className="absolute h-full w-1/3 bg-gradient-to-r from-transparent via-primary to-transparent animate-loading-slide"></div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="space-y-0">
+                {commits.map((commit, index) => (
+                  <div
+                    key={commit.commit_id}
+                    className="flex gap-4 animate-fade-in-down"
+                    style={{
+                      animationDelay: `${index * 120}ms`,
+                      animationFillMode: "backwards",
+                    }}
+                  >
+                    <div className="flex flex-col items-center pt-[18px]">
+                      <div className="w-3 h-3 rounded-full bg-primary flex-shrink-0" />
+                      {index < commits.length - 1 && (
+                        <div className="w-0.5 flex-1 bg-border mt-2" />
+                      )}
+                    </div>
+
+                    <div className="flex-1 pb-8">
+                      <div className="w-full group">
+                        <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
+                          <Checkbox
+                            checked={selectedCommits.has(commit.commit_id)}
+                            onCheckedChange={() =>
+                              toggleSelect(commit.commit_id)
+                            }
+                            className="mt-[3px] flex-shrink-0"
+                          />
+                          <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() => toggleExpand(commit.commit_id)}
+                          >
+                            <div className="flex items-baseline gap-2 mb-0.5">
+                              <span className="text-xs font-mono text-muted-foreground">
+                                {commit.commit_id.slice(0, 7)}
+                              </span>
+                              <span className="text-xs text-muted-foreground">
+                                {index === 0
+                                  ? "newest"
+                                  : index === commits.length - 1
+                                  ? "last sync"
+                                  : `${index}`}
+                              </span>
+                            </div>
+                            <p className="text-sm font-medium text-foreground transition-all duration-200">
+                              {expandedCommits.has(commit.commit_id)
+                                ? commit.description
+                                : truncateDescription(commit.description)}
+                            </p>
+                          </div>
+                          <ChevronDown
+                            className={`w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 mt-0.5 cursor-pointer ${
+                              expandedCommits.has(commit.commit_id)
+                                ? "rotate-180"
+                                : ""
+                            }`}
+                            onClick={() => toggleExpand(commit.commit_id)}
+                          />
+                        </div>
+                      </div>
+
+                      {expandedCommits.has(commit.commit_id) && (
+                        <div className="mt-3 ml-9 space-y-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                          <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                            <div>
+                              <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+                                Commit Message
+                              </p>
+                              <p className="text-sm text-foreground leading-relaxed">
+                                {commit.description}
+                              </p>
+                            </div>
+                            <div className="pt-2 border-t border-border/50">
+                              <p className="text-xs font-semibold text-muted-foreground mb-2">
+                                Commit Details
+                              </p>
+                              <div className="space-y-2">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-xs text-muted-foreground min-w-[60px]">
+                                    Hash:
+                                  </span>
+                                  <code className="text-xs font-mono text-foreground bg-muted px-1.5 py-0.5 rounded">
+                                    {commit.commit_id}
+                                  </code>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                  <span className="text-xs text-muted-foreground min-w-[60px]">
+                                    Link:
+                                  </span>
+                                  <a
+                                    href={`https://github.com/${HARDCODED_REPO}/commit/${commit.commit_id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-primary hover:underline"
+                                  >
+                                    View on GitHub →
+                                  </a>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Sidebar */}
@@ -353,23 +443,37 @@ export default function Home() {
               {/* Generate Knowledge */}
               <div className="border border-border rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-accent" />
                   <h3 className="text-sm font-semibold text-foreground">
                     Generate Knowledge
                   </h3>
                 </div>
                 <Button
                   size="sm"
-                  className="w-full mb-2 text-xs h-8"
+                  className="w-full mb-2 text-xs h-8 hover:bg-primary/80 hover:scale-[1.02] transition-all relative overflow-hidden group"
                   onClick={generateTopics}
-                  disabled={loading || selectedCommits.size === 0}
+                  disabled={
+                    isSyncing || isGenerating || selectedCommits.size === 0
+                  }
                 >
-                  {loading ? "Generating..." : "Generate"}
+                  {isGenerating ? (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent to-primary animate-shimmer bg-[length:200%_100%]"></div>
+                      <span className="relative flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 animate-pulse" />
+                        <span className="animate-pulse">Generating...</span>
+                      </span>
+                    </>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      <Sparkles className="w-3.5 h-3.5 transition-transform group-hover:rotate-12" />
+                      Generate
+                    </span>
+                  )}
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
-                  className="w-full text-xs h-8 bg-transparent"
+                  className="w-full text-xs h-8 bg-transparent hover:!bg-muted hover:!text-foreground hover:border-muted-foreground/40 transition-all"
                   onClick={() => setShowSettings(!showSettings)}
                 >
                   {showSettings ? "Hide" : "Show"} Settings
@@ -377,7 +481,11 @@ export default function Home() {
               </div>
 
               {/* Settings */}
-              {showSettings && (
+              <div
+                className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                  showSettings ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+                }`}
+              >
                 <div className="border border-border rounded-lg p-4 text-sm space-y-3">
                   <div>
                     <label className="text-xs font-semibold text-foreground block mb-2">
@@ -457,7 +565,7 @@ export default function Home() {
                     />
                   </div>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         </div>
@@ -469,7 +577,10 @@ export default function Home() {
               {/* Topics Sidebar */}
               <aside className="w-64 flex-shrink-0">
                 <div className="sticky top-8">
-                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4">
+                  <p
+                    ref={topicsSectionRef}
+                    className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-4"
+                  >
                     Topics ({topics.length})
                   </p>
                   <div className="space-y-2">
@@ -483,10 +594,13 @@ export default function Home() {
                         <button
                           key={index}
                           onClick={() => setSelectedTopicIndex(index)}
-                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors hover:bg-muted/50 text-left ${
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors hover:bg-muted/50 text-left relative ${
                             isSelected ? "bg-muted/50" : ""
                           }`}
                         >
+                          {isSelected && (
+                            <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-primary rounded-r" />
+                          )}
                           {isLearned ? (
                             <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
                           ) : (
@@ -518,6 +632,10 @@ export default function Home() {
                   }
                   onSave={saveTopic}
                   onSkip={skipTopic}
+                  isLearned={
+                    selectedTopicIndex !== null &&
+                    learnedTopics.has(selectedTopicIndex)
+                  }
                 />
               </div>
             </div>
