@@ -1,9 +1,17 @@
-import type { Metadata } from 'next'
-import './globals.css'
+import type React from "react"
+
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "./globals.css"
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+})
 
 export const metadata: Metadata = {
-  title: 'Git Learning Program',
-  description: 'Learn from your git commits',
+  title: "VibeLearn",
+  description: "Learn from your git commits",
 }
 
 export default function RootLayout({
@@ -12,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body className={inter.className}>{children}</body>
     </html>
   )
 }

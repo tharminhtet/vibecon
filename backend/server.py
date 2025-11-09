@@ -75,6 +75,8 @@ class SaveLearningRequest(BaseModel):
 class TopicOutput(BaseModel):
     path: str
     description: str
+    code_example: str
+    use_cases: List[str]
     parent_id: Optional[str] = None
     parent_temp_id: Optional[str] = None
 
@@ -187,22 +189,13 @@ def generate_topics(request: GenerateTopicsRequest):
             repo_id=request.repo_id, commit_ids=request.commit_ids, include_patch=True
         )
 
-        # Build prompt for LLM
-        system_prompt = f"""You are an expert programming educator analyzing code changes to identify learning opportunities.
+        # Load system prompt from file
+        prompt_file_path = os.path.join(os.path.dirname(__file__), "prompt.txt")
+        with open(prompt_file_path, "r") as f:
+            system_prompt_template = f.read()
 
-Your task is to analyze git commit diffs and generate structured learning topics based on new concepts, patterns, or techniques discovered in the code.
-
-Current Knowledge Base Tree:
-{kb_tree}
-
-Rules:
-1. Identify NEW concepts not already in the knowledge base
-2. Create topics with clear, educational descriptions
-3. Properly categorize topics under correct parent (Language Features, Standard Library, External Libraries, or Web Frameworks)
-4. If parent doesn't exist, create it first with a parent_temp_id
-5. Include how the concept was used in the actual code at the end of the description
-6. Path format: "Language/Category/Topic" (e.g., "Python/Language Features/Decorators")
-"""
+        # Format prompt with knowledge base tree
+        system_prompt = system_prompt_template.format(kb_tree=kb_tree)
 
         user_prompt = f"""Analyze these commit diffs and generate learning topics:
 
@@ -237,12 +230,19 @@ Rules:
                                     "properties": {
                                         "path": {"type": "string"},
                                         "description": {"type": "string"},
+                                        "code_example": {"type": "string"},
+                                        "use_cases": {
+                                            "type": "array",
+                                            "items": {"type": "string"},
+                                        },
                                         "parent_id": {"type": ["string", "null"]},
                                         "parent_temp_id": {"type": ["string", "null"]},
                                     },
                                     "required": [
                                         "path",
                                         "description",
+                                        "code_example",
+                                        "use_cases",
                                         "parent_id",
                                         "parent_temp_id",
                                     ],
