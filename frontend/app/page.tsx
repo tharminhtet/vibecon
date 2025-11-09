@@ -438,9 +438,6 @@ export default function Home() {
         {/* Generated Topics - Beautiful Learning UI */}
         {topics.length > 0 && (
           <div className="mt-12 border-t border-border pt-8">
-            <h2 className="text-xl font-semibold text-foreground mb-6">
-              Generated Knowledge
-            </h2>
             <div className="flex gap-8">
               {/* Topics Sidebar */}
               <aside className="w-64 flex-shrink-0">
