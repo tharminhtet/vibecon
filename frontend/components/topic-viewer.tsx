@@ -108,51 +108,62 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
         <TabsList className="grid w-full grid-cols-3 bg-transparent border-b border-border p-0 h-auto gap-8">
           <TabsTrigger
             value="explain"
-            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px]"
+            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px] transition-all duration-200"
           >
             Explanation
           </TabsTrigger>
           <TabsTrigger
             value="code"
-            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px]"
+            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px] transition-all duration-200"
           >
             Code
           </TabsTrigger>
           <TabsTrigger
             value="usecases"
-            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px]"
+            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px] transition-all duration-200"
           >
             Use Cases
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="explain" className="space-y-4 mt-8 min-h-[300px] w-full">
-          <div className="space-y-4 text-sm leading-relaxed">
-            {topic.description.split("\n").map((paragraph, idx) => (
-              <p key={idx} className="text-foreground/80">
-                {paragraph}
-              </p>
-            ))}
-          </div>
-        </TabsContent>
+        <div className="relative h-[400px] mt-8">
+          <TabsContent 
+            value="explain" 
+            className="absolute inset-0 data-[state=active]:animate-in data-[state=inactive]:animate-out data-[state=active]:fade-in-0 data-[state=inactive]:fade-out-0 data-[state=active]:slide-in-from-bottom-2 data-[state=inactive]:slide-out-to-top-2 duration-300 overflow-y-auto"
+          >
+            <div className="space-y-4 text-sm leading-relaxed">
+              {topic.description.split("\n").map((paragraph, idx) => (
+                <p key={idx} className="text-foreground/80">
+                  {paragraph}
+                </p>
+              ))}
+            </div>
+          </TabsContent>
 
-        <TabsContent value="code" className="space-y-4 mt-8 min-h-[300px] w-full">
-          <div className="w-full overflow-hidden">
-            <pre className="bg-muted/30 border border-border rounded-lg p-6 overflow-x-auto max-w-full">
-              <code className="text-sm font-mono text-primary whitespace-pre">{topic.code_example}</code>
-            </pre>
-          </div>
-        </TabsContent>
+          <TabsContent 
+            value="code" 
+            className="absolute inset-0 data-[state=active]:animate-in data-[state=inactive]:animate-out data-[state=active]:fade-in-0 data-[state=inactive]:fade-out-0 data-[state=active]:slide-in-from-bottom-2 data-[state=inactive]:slide-out-to-top-2 duration-300 overflow-y-auto"
+          >
+            <div className="w-full overflow-hidden">
+              <pre className="bg-muted/30 border border-border rounded-lg p-6 overflow-x-auto max-w-full">
+                <code className="text-sm font-mono text-primary whitespace-pre">{topic.code_example}</code>
+              </pre>
+            </div>
+          </TabsContent>
 
-        <TabsContent value="usecases" className="space-y-4 mt-8 min-h-[300px] w-full">
-          <div className="grid grid-cols-2 gap-3">
-            {topic.use_cases.map((useCase, idx) => (
-              <div key={idx} className="p-4 rounded-lg border border-border hover:border-primary/50 transition-colors">
-                <p className="text-sm text-foreground/80">{useCase}</p>
-              </div>
-            ))}
-          </div>
-        </TabsContent>
+          <TabsContent 
+            value="usecases" 
+            className="absolute inset-0 data-[state=active]:animate-in data-[state=inactive]:animate-out data-[state=active]:fade-in-0 data-[state=inactive]:fade-out-0 data-[state=active]:slide-in-from-bottom-2 data-[state=inactive]:slide-out-to-top-2 duration-300 overflow-y-auto"
+          >
+            <div className="grid grid-cols-2 gap-3">
+              {topic.use_cases.map((useCase, idx) => (
+                <div key={idx} className="p-4 rounded-lg border border-border hover:border-primary/50 transition-colors">
+                  <p className="text-sm text-foreground/80">{useCase}</p>
+                </div>
+              ))}
+            </div>
+          </TabsContent>
+        </div>
       </Tabs>
 
       {/* Action Buttons */}
