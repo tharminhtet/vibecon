@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import axios from 'axios'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+const API_URL = process.env.NEXT_PUBLIC_API_URL || ''
 const HARDCODED_REPO = 'tharminhtet/AiChatIOS'
 
 interface Commit {
@@ -42,6 +42,7 @@ export default function Home() {
 
   // Auto-sync on page load
   React.useEffect(() => {
+    console.log('Page loaded, API_URL:', API_URL)
     syncCommits()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
@@ -50,11 +51,28 @@ export default function Home() {
     setLoading(true)
     setError('')
     console.log('Syncing commits from:', HARDCODED_REPO)
+    console.log('API URL:', API_URL)
+    console.log('Full URL:', `${API_URL}/api/analyze_commits`)
+    
+    // Test health endpoint first
+    try {
+      console.log('Testing backend health...')
+      const healthCheck = await axios.get(`${API_URL}/api/health`, { timeout: 5000 })
+      console.log('Backend health:', healthCheck.data)
+    } catch (healthError: any) {
+      console.error('Backend health check failed:', healthError.message)
+      setError(`Cannot connect to backend: ${healthError.message}`)
+      setLoading(false)
+      return
+    }
+    
     try {
       const response = await axios.post(`${API_URL}/api/analyze_commits`, {
         repo_id: HARDCODED_REPO,
         branch: 'main',
         max_commits: 20
+      }, {
+        timeout: 10000
       })
       console.log('Sync response:', response.data)
       setCommits(response.data.commits)

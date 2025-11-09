@@ -83,6 +83,15 @@ def health_check():
     return {"status": "healthy"}
 
 
+@app.get("/api/test")
+def test_endpoint():
+    return {
+        "status": "ok",
+        "message": "Backend is reachable",
+        "timestamp": "now"
+    }
+
+
 @app.get("/api/knowledge_base/{root_name}")
 def get_knowledge_base(root_name: str = "Python"):
     """
