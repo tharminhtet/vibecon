@@ -8,7 +8,13 @@ from openai import OpenAI
 import json
 
 from github_commit_analyzer import GitHubCommitAnalyzer
-from supabase_client import get_knowledge_tree, save_learning, get_node_by_name
+from supabase_client import (
+    get_knowledge_tree, 
+    save_learning, 
+    get_node_by_name,
+    get_repo_sync_state,
+    update_repo_sync_state
+)
 
 load_dotenv()
 
