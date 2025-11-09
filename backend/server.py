@@ -47,6 +47,7 @@ class AnalyzeCommitsRequest(BaseModel):
     repo_id: str
     branch: str = "main"
     max_commits: int = 20
+    update_last_sync: bool = False
 
 
 class GetCommitDiffsRequest(BaseModel):
@@ -105,6 +106,7 @@ def analyze_commits(request: AnalyzeCommitsRequest):
     """
     Get commits newer than the last synced commit for this repository.
     If no sync state exists, get recent commits and create initial state.
+    Only updates last sync state if update_last_sync is True.
     """
     try:
         # Get the last synced commit for this repo
@@ -134,12 +136,12 @@ def analyze_commits(request: AnalyzeCommitsRequest):
                 for commit in response
             ]
 
-            # Store the most recent commit as the initial sync point
-            if commits:
+            # Store the most recent commit as the initial sync point only if update_last_sync is True
+            if commits and request.update_last_sync:
                 update_repo_sync_state(request.repo_id, commits[0]["commit_id"])
 
-        # Update sync state with the newest commit after successful fetch
-        if commits and sync_state:
+        # Update sync state with the newest commit only if update_last_sync is True
+        if commits and sync_state and request.update_last_sync:
             update_repo_sync_state(request.repo_id, commits[0]["commit_id"])
 
         return {

@@ -79,6 +79,7 @@ export default function Home() {
           repo_id: HARDCODED_REPO,
           branch: "main",
           max_commits: 20,
+          update_last_sync: false, // Don't update last sync on initial fetch
         },
         {
           timeout: 10000,
@@ -128,6 +129,14 @@ export default function Home() {
         focus_area: focusAreas.length > 0 ? focusAreas.join(", ") : undefined,
       });
       setTopics(response.data.topics);
+
+      // Update last sync after successful topic generation
+      await axios.post(`${API_URL}/api/analyze_commits`, {
+        repo_id: HARDCODED_REPO,
+        branch: "main",
+        max_commits: 20,
+        update_last_sync: true,
+      });
     } catch (err: any) {
       setError(err.response?.data?.detail || "Failed to generate topics");
     } finally {
