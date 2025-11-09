@@ -158,10 +158,14 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
         <div className="flex gap-3">
           {onSave && (
             <Button
-              onClick={onSave}
+              onClick={() => {
+                setHasMarkedAsLearned(true)
+                onSave()
+              }}
               className="flex-1"
+              disabled={hasMarkedAsLearned}
             >
-              Mark as Learned
+              {hasMarkedAsLearned ? "Marked as Learned ✓" : "Mark as Learned"}
             </Button>
           )}
           {onSkip && (
@@ -169,6 +173,7 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
               onClick={onSkip}
               variant="outline"
               className="flex-1"
+              disabled={hasMarkedAsLearned}
             >
               Skip for Now
             </Button>
