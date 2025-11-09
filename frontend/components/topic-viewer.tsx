@@ -173,7 +173,24 @@ export default function TopicViewer({
         <h2 className="text-4xl font-light tracking-tight text-foreground">
           {topicName}
         </h2>
-        <p className="text-sm text-muted-foreground font-light">{topic.path}</p>
+        <div className="flex items-center gap-2 text-sm font-light">
+          {topic.path.split("/").map((part, index, array) => (
+            <div key={index} className="flex items-center gap-2">
+              <span
+                className={
+                  index === array.length - 1
+                    ? "text-primary"
+                    : "text-muted-foreground"
+                }
+              >
+                {part}
+              </span>
+              {index < array.length - 1 && (
+                <span className="text-muted-foreground/40">/</span>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       <Tabs

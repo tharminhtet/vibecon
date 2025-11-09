@@ -253,9 +253,17 @@ export default function Home() {
       const nameParts = topic.path.split("/");
       const name = nameParts[nameParts.length - 1];
 
+      // Combine all topic content into a structured blob
+      const fullTopicContent = JSON.stringify({
+        description: topic.description,
+        code_example: topic.code_example,
+        use_cases: topic.use_cases,
+        path: topic.path,
+      });
+
       await axios.post(`${API_URL}/api/save_learning`, {
         name: name,
-        description: topic.description,
+        description: fullTopicContent,
         parent_id: topic.parent_id,
         parent_temp_id: topic.parent_temp_id,
         github_link: topic.github_commit_link,
