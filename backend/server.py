@@ -98,16 +98,50 @@ def get_knowledge_base(root_name: str = "Python"):
 @app.post("/api/analyze_commits")
 def analyze_commits(request: AnalyzeCommitsRequest):
     """
-    Get commits newer than a specific commit.
+    Get commits newer than the last synced commit for this repository.
+    If no sync state exists, get recent commits and create initial state.
     """
     try:
-        commits = github_analyzer.get_commits_since(
-            repo_id=request.repo_id,
-            since_commit_id=request.since_commit_id,
-            branch=request.branch,
-            max_commits=request.max_commits
-        )
-        return {"commits": commits}
+        # Get the last synced commit for this repo
+        sync_state = get_repo_sync_state(request.repo_id)
+        
+        if sync_state:
+            # Get commits since last sync
+            since_commit_id = sync_state["last_commit_hash"]
+            commits = github_analyzer.get_commits_since(
+                repo_id=request.repo_id,
+                since_commit_id=since_commit_id,
+                branch=request.branch,
+                max_commits=request.max_commits
+            )
+        else:
+            # First time syncing this repo - get recent commits
+            # We'll use a special approach: get the latest commits
+            url = f"https://api.github.com/repos/{request.repo_id}/commits"
+            params = {"sha": request.branch, "per_page": min(request.max_commits, 10)}
+            
+            response = github_analyzer._make_request(url, params)
+            commits = [
+                {
+                    "commit_id": commit["sha"],
+                    "description": commit["commit"]["message"].split("\n")[0]
+                }
+                for commit in response
+            ]
+            
+            # Store the most recent commit as the initial sync point
+            if commits:
+                update_repo_sync_state(request.repo_id, commits[0]["commit_id"])
+        
+        # Update sync state with the newest commit after successful fetch
+        if commits and sync_state:
+            update_repo_sync_state(request.repo_id, commits[0]["commit_id"])
+        
+        return {
+            "commits": commits,
+            "is_first_sync": sync_state is None,
+            "last_synced_commit": sync_state["last_commit_hash"] if sync_state else None
+        }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
