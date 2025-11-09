@@ -168,28 +168,35 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
 
       {/* Action Buttons */}
       {(onSave || onSkip) && (
-        <div className="flex gap-3">
+        <div className="flex gap-2 items-center">
           {onSave && (
-            <Button
+            <button
               onClick={() => {
                 setHasMarkedAsLearned(true)
                 onSave()
               }}
-              className="flex-1"
               disabled={hasMarkedAsLearned}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                hasMarkedAsLearned 
+                  ? "bg-primary/20 text-primary border border-primary cursor-not-allowed" 
+                  : "bg-primary/10 text-primary hover:bg-primary/20 border border-transparent hover:border-primary/50"
+              }`}
             >
-              {hasMarkedAsLearned ? "Marked as Learned ✓" : "Mark as Learned"}
-            </Button>
+              {hasMarkedAsLearned ? "✓ Marked as Learned" : "Mark as Learned"}
+            </button>
           )}
           {onSkip && (
-            <Button
+            <button
               onClick={onSkip}
-              variant="outline"
-              className="flex-1"
               disabled={hasMarkedAsLearned}
+              className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all duration-200 ${
+                hasMarkedAsLearned
+                  ? "text-muted-foreground/50 cursor-not-allowed"
+                  : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+              }`}
             >
               Skip for Now
-            </Button>
+            </button>
           )}
         </div>
       )}
