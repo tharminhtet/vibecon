@@ -54,7 +54,6 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
           content: `What would you like to know about ${topic.path.split("/").pop()}?`,
         },
       ])
-      setHasMarkedAsLearned(false)
     }
   }, [topic])
 
