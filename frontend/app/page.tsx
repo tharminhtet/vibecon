@@ -264,15 +264,13 @@ export default function Home() {
                   </div>
 
                   <div className="flex-1 pb-8">
-                    <button
-                      onClick={() => toggleExpand(commit.commit_id)}
-                      className="w-full text-left group"
+                    <div
+                      className="w-full group"
                     >
                       <div className="flex items-start gap-3 p-3 rounded-lg hover:bg-muted/50 transition-colors">
                         <Checkbox
                           checked={selectedCommits.has(commit.commit_id)}
                           onCheckedChange={() => toggleSelect(commit.commit_id)}
-                          onClick={(e) => e.stopPropagation()}
                           className="mt-0.5 flex-shrink-0"
                         />
                         <div className="flex-1 min-w-0">
