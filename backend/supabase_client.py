@@ -114,9 +114,10 @@ def update_repo_sync_state(repo_name: str, last_commit_hash: str) -> Dict:
     
     if existing:
         # Update existing record
+        from datetime import datetime
         result = supabase.table("repo_sync_state").update({
             "last_commit_hash": last_commit_hash,
-            "last_synced_at": "now()"
+            "last_synced_at": datetime.now().isoformat()
         }).eq("repo_name", repo_name).execute()
     else:
         # Create new record
