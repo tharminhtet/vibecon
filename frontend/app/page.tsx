@@ -333,14 +333,24 @@ export default function Home() {
           {/* Sidebar */}
           <div className="w-72 flex-shrink-0">
             <div className="sticky top-8 space-y-4">
+              {/* Sync Commits */}
+              <div className="border border-border rounded-lg p-4">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full text-xs h-8"
+                  onClick={syncCommits}
+                  disabled={loading}
+                >
+                  {loading ? "Syncing..." : "Sync New Commits"}
+                </Button>
+              </div>
+
               {/* Generate Knowledge */}
               <div className="border border-border rounded-lg p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-accent" />
-                  <h3 className="text-sm font-semibold text-foreground">
-                    Generate Knowledge
-                  </h3>
-                </div>
+                <h3 className="text-sm font-semibold text-foreground mb-3">
+                  Generate Knowledge
+                </h3>
                 <Button
                   size="sm"
                   className="w-full mb-2 text-xs h-8"
