@@ -19,13 +19,14 @@ interface Topic {
 }
 
 export default function Home() {
-  const [sinceCommitId, setSinceCommitId] = useState('')
   const [commits, setCommits] = useState<Commit[]>([])
   const [selectedCommits, setSelectedCommits] = useState<string[]>([])
   const [expandedCommits, setExpandedCommits] = useState<Set<string>>(new Set())
   const [topics, setTopics] = useState<Topic[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
+  const [isFirstSync, setIsFirstSync] = useState(false)
+  const [lastSyncedCommit, setLastSyncedCommit] = useState<string | null>(null)
   
   // Settings state
   const [showSettings, setShowSettings] = useState(false)
@@ -39,25 +40,25 @@ export default function Home() {
   // Question state for each topic
   const [topicQuestions, setTopicQuestions] = useState<{[key: number]: string}>({})
 
-  const analyzeCommits = async () => {
-    if (!sinceCommitId) {
-      setError('Please enter a commit ID')
-      return
-    }
-
+  const syncCommits = async () => {
     setLoading(true)
     setError('')
     try {
       const response = await axios.post(`${API_URL}/api/analyze_commits`, {
         repo_id: HARDCODED_REPO,
-        since_commit_id: sinceCommitId,
         branch: 'main',
         max_commits: 20
       })
       setCommits(response.data.commits)
       setSelectedCommits(response.data.commits.map((c: Commit) => c.commit_id))
+      setIsFirstSync(response.data.is_first_sync)
+      setLastSyncedCommit(response.data.last_synced_commit)
+      
+      if (response.data.commits.length === 0) {
+        setError('No new commits since last sync')
+      }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to analyze commits')
+      setError(err.response?.data?.detail || 'Failed to sync commits')
     } finally {
       setLoading(false)
     }
