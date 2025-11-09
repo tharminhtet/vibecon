@@ -38,7 +38,9 @@ export default function Home() {
 
   // Topics state
   const [topics, setTopics] = useState<Topic[]>([]);
-  const [selectedTopicIndex, setSelectedTopicIndex] = useState<number | null>(null);
+  const [selectedTopicIndex, setSelectedTopicIndex] = useState<number | null>(
+    null
+  );
   const [learnedTopics, setLearnedTopics] = useState<Set<number>>(new Set());
 
   // Settings state
@@ -178,7 +180,7 @@ export default function Home() {
 
   const saveTopic = async () => {
     if (selectedTopicIndex === null) return;
-    
+
     setLoading(true);
     setError("");
     try {
@@ -196,7 +198,7 @@ export default function Home() {
 
       // Mark as learned instead of removing
       setLearnedTopics((prev) => new Set(prev).add(selectedTopicIndex));
-      
+
       // Move to next topic
       if (selectedTopicIndex < topics.length - 1) {
         setSelectedTopicIndex(selectedTopicIndex + 1);
@@ -210,7 +212,7 @@ export default function Home() {
 
   const skipTopic = () => {
     if (selectedTopicIndex === null) return;
-    
+
     // Move to next topic
     if (selectedTopicIndex < topics.length - 1) {
       setSelectedTopicIndex(selectedTopicIndex + 1);
@@ -446,10 +448,11 @@ export default function Home() {
                   </p>
                   <div className="space-y-2">
                     {topics.map((topic, index) => {
-                      const topicName = topic.path.split("/").pop() || topic.path;
+                      const topicName =
+                        topic.path.split("/").pop() || topic.path;
                       const isSelected = selectedTopicIndex === index;
                       const isLearned = learnedTopics.has(index);
-                      
+
                       return (
                         <button
                           key={index}
@@ -463,7 +466,13 @@ export default function Home() {
                           ) : (
                             <Circle className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                           )}
-                          <span className={isLearned ? "text-foreground" : "text-muted-foreground"}>
+                          <span
+                            className={
+                              isLearned
+                                ? "text-foreground"
+                                : "text-muted-foreground"
+                            }
+                          >
                             {topicName}
                           </span>
                         </button>
@@ -476,7 +485,11 @@ export default function Home() {
               {/* Topic Viewer */}
               <div className="flex-1">
                 <TopicViewer
-                  topic={selectedTopicIndex !== null ? topics[selectedTopicIndex] : null}
+                  topic={
+                    selectedTopicIndex !== null
+                      ? topics[selectedTopicIndex]
+                      : null
+                  }
                   onSave={saveTopic}
                   onSkip={skipTopic}
                 />
