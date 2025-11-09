@@ -55,26 +55,33 @@ Both services are running and ready to use!
 
 ## How to Use
 
-1. **Load Knowledge Base**
-   - Open http://localhost:3000
-   - Enter your programming language (e.g., "Python")
-   - Click "Load Knowledge Base" to see your current knowledge tree
+1. **Open the Application**
+   - Navigate to http://localhost:3000
+   - You'll see "New Changes in /AiChatIOS" as the title
 
-2. **Analyze Commits**
-   - Enter repository (e.g., "owner/repo")
-   - Enter a commit SHA to start from
-   - Enter branch name
-   - Click "Analyze Commits" to fetch newer commits
+2. **Load Commits**
+   - Enter a commit SHA in the "last sync" field (e.g., `d4afea6e139e2f546a509e0e0860d2558cf21176`)
+   - Click "Load Commits" to fetch newer commits
+   - Commits will be listed with checkboxes on the left
+   - Click on a commit description to expand/collapse it
 
-3. **Generate Topics**
-   - Select commits to analyze
-   - Add optional instructions or focus areas
-   - Click "Generate Topics" to use AI for analysis
+3. **Configure Settings (Optional)**
+   - Click "Settings" button to open the configuration panel
+   - Select filters: Language, Frameworks, or Libraries
+   - Add custom instructions for the AI
 
-4. **Save Topics**
-   - Review generated topics with descriptions
-   - Click "Save" on individual topics to add them to your knowledge base
-   - Reload knowledge base to see updated tree
+4. **Generate Topics**
+   - Select which commits you want to learn from (by default all are selected)
+   - Click "Generate new knowledge" button
+   - Wait for AI to analyze the code changes
+
+5. **Review and Save Topics**
+   - Generated topics appear below with path and description
+   - For each topic:
+     - Click "Learned" to save it to your knowledge base
+     - Click "Not now" to skip it
+     - Type a follow-up question in the text box
+     - Click the chat button to open ChatGPT with your question and context
 
 ## API Endpoints
 
