@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { ChevronDown, Sparkles, CheckCircle, Circle, Github } from "lucide-react";
+import { ChevronDown, Sparkles, CheckCircle, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import TopicViewer from "@/components/topic-viewer";
