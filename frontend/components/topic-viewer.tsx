@@ -108,25 +108,25 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
         <TabsList className="grid w-full grid-cols-3 bg-transparent border-b border-border p-0 h-auto gap-8">
           <TabsTrigger
             value="explain"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary bg-transparent px-0 py-3 font-light text-sm"
+            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px]"
           >
             Explanation
           </TabsTrigger>
           <TabsTrigger
             value="code"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary bg-transparent px-0 py-3 font-light text-sm"
+            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px]"
           >
             Code
           </TabsTrigger>
           <TabsTrigger
             value="usecases"
-            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary bg-transparent px-0 py-3 font-light text-sm"
+            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px]"
           >
             Use Cases
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="explain" className="space-y-4 mt-8">
+        <TabsContent value="explain" className="space-y-4 mt-8 min-h-[300px]">
           <div className="space-y-4 text-sm leading-relaxed">
             {topic.description.split("\n").map((paragraph, idx) => (
               <p key={idx} className="text-foreground/80">
