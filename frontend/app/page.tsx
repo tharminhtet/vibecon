@@ -40,6 +40,11 @@ export default function Home() {
   // Question state for each topic
   const [topicQuestions, setTopicQuestions] = useState<{[key: number]: string}>({})
 
+  // Auto-sync on page load
+  React.useEffect(() => {
+    syncCommits()
+  }, [])
+
   const syncCommits = async () => {
     setLoading(true)
     setError('')
