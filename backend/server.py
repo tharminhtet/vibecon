@@ -45,9 +45,8 @@ openai_client = OpenAI(api_key=openai_api_key)
 # Pydantic models
 class AnalyzeCommitsRequest(BaseModel):
     repo_id: str
-    since_commit_id: str
     branch: str = "main"
-    max_commits: int = 10
+    max_commits: int = 20
 
 
 class GetCommitDiffsRequest(BaseModel):
