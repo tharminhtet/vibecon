@@ -48,22 +48,26 @@ export default function Home() {
   const syncCommits = async () => {
     setLoading(true)
     setError('')
+    console.log('Syncing commits from:', HARDCODED_REPO)
     try {
       const response = await axios.post(`${API_URL}/api/analyze_commits`, {
         repo_id: HARDCODED_REPO,
         branch: 'main',
         max_commits: 20
       })
+      console.log('Sync response:', response.data)
       setCommits(response.data.commits)
       setSelectedCommits(response.data.commits.map((c: Commit) => c.commit_id))
       setIsFirstSync(response.data.is_first_sync)
       setLastSyncedCommit(response.data.last_synced_commit)
       
-      if (response.data.commits.length === 0) {
-        setError('No new commits since last sync')
+      if (response.data.commits.length === 0 && !response.data.is_first_sync) {
+        console.log('No new commits found')
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to sync commits')
+      console.error('Sync error:', err)
+      const errorMsg = err.response?.data?.detail || err.message || 'Failed to sync commits. Please check console.'
+      setError(errorMsg)
     } finally {
       setLoading(false)
     }
