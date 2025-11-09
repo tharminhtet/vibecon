@@ -1,14 +1,20 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ChevronDown, Sparkles, CheckCircle, Circle } from "lucide-react";
+import {
+  ChevronDown,
+  Sparkles,
+  CheckCircle,
+  Circle,
+  Send,
+  ArrowLeft,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import TopicViewer from "@/components/topic-viewer";
 import axios from "axios";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8001";
-const HARDCODED_REPO = "tharminhtet/AiChatIOS";
 
 interface Commit {
   commit_id: string;
@@ -25,6 +31,10 @@ interface Topic {
 }
 
 export default function Home() {
+  // Repo state
+  const [repoUrl, setRepoUrl] = useState("");
+  const [currentRepo, setCurrentRepo] = useState<string | null>(null);
+
   const [commits, setCommits] = useState<Commit[]>([]);
   const [selectedCommits, setSelectedCommits] = useState<Set<string>>(
     new Set()
@@ -55,13 +65,38 @@ export default function Home() {
   // Ref for scrolling to topics section
   const topicsSectionRef = useRef<HTMLDivElement>(null);
 
-  // Auto-sync on page load
-  useEffect(() => {
-    syncCommits();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const parseRepoUrl = (url: string): string | null => {
+    // Handle github.com URLs
+    const githubMatch = url.match(/github\.com\/([^\/]+\/[^\/]+)/);
+    if (githubMatch) {
+      return githubMatch[1].replace(/\.git$/, "");
+    }
 
-  const syncCommits = async () => {
+    // Handle direct owner/repo format
+    if (/^[^\/]+\/[^\/]+$/.test(url.trim())) {
+      return url.trim();
+    }
+
+    return null;
+  };
+
+  const handleRepoSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const parsedRepo = parseRepoUrl(repoUrl);
+
+    if (!parsedRepo) {
+      setError("Please enter a valid GitHub repo URL or owner/repo format");
+      return;
+    }
+
+    setCurrentRepo(parsedRepo);
+    setError("");
+    await syncCommits(parsedRepo);
+  };
+
+  const syncCommits = async (repo: string = currentRepo!) => {
+    if (!repo) return;
+
     setIsSyncing(true);
     setError("");
 
@@ -85,7 +120,7 @@ export default function Home() {
       const response = await axios.post(
         `${API_URL}/api/analyze_commits`,
         {
-          repo_id: HARDCODED_REPO,
+          repo_id: repo,
           branch: "main",
           max_commits: 20,
           update_last_sync: false,
@@ -138,6 +173,11 @@ export default function Home() {
       return;
     }
 
+    if (!currentRepo) {
+      setError("No repository selected");
+      return;
+    }
+
     setIsGenerating(true);
     setError("");
     try {
@@ -147,7 +187,7 @@ export default function Home() {
       if (filters.libraries) focusAreas.push("libraries");
 
       const response = await axios.post(`${API_URL}/api/generate_topics`, {
-        repo_id: HARDCODED_REPO,
+        repo_id: currentRepo,
         commit_ids: Array.from(selectedCommits),
         root_language: "Python",
         user_instructions: customInstructions || undefined,
@@ -163,7 +203,7 @@ export default function Home() {
 
       // Update last sync after successful topic generation
       await axios.post(`${API_URL}/api/analyze_commits`, {
-        repo_id: HARDCODED_REPO,
+        repo_id: currentRepo,
         branch: "main",
         max_commits: 20,
         update_last_sync: true,
@@ -204,7 +244,7 @@ export default function Home() {
   };
 
   const saveTopic = async () => {
-    if (selectedTopicIndex === null) return;
+    if (selectedTopicIndex === null || !currentRepo) return;
 
     setError("");
     try {
@@ -217,7 +257,7 @@ export default function Home() {
         description: topic.description,
         parent_id: topic.parent_id,
         parent_temp_id: topic.parent_temp_id,
-        github_link: `https://github.com/${HARDCODED_REPO}`,
+        github_link: `https://github.com/${currentRepo}`,
       });
 
       // Mark as learned instead of removing
@@ -243,18 +283,126 @@ export default function Home() {
     }
   };
 
+  // Example repos for the landing page
+  const exampleRepos = [
+    { name: "facebook/react", desc: "A JavaScript library for building UIs" },
+    { name: "vercel/next.js", desc: "The React Framework" },
+    { name: "microsoft/vscode", desc: "Visual Studio Code" },
+  ];
+
+  const handleExampleClick = async (repoId: string) => {
+    setRepoUrl(repoId);
+    setCurrentRepo(repoId);
+    setError("");
+    await syncCommits(repoId);
+  };
+
+  const handleBackToHome = () => {
+    setCurrentRepo(null);
+    setRepoUrl("");
+    setCommits([]);
+    setSelectedCommits(new Set());
+    setTopics([]);
+    setSelectedTopicIndex(null);
+    setLearnedTopics(new Set());
+    setError("");
+  };
+
+  // If no repo is selected, show landing page
+  if (!currentRepo) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col justify-center px-6 py-12">
+        <div className="max-w-2xl w-full mx-auto -mt-20">
+          <div className="text-center mb-8">
+            <h1 className="text-4xl font-semibold tracking-tight">
+              <span className="text-foreground">Learn while </span>
+              <span className="text-primary">vibecoding</span>
+            </h1>
+          </div>
+
+          <form onSubmit={handleRepoSubmit} className="space-y-4 mb-12">
+            <div className="flex items-center gap-3">
+              <input
+                type="text"
+                value={repoUrl}
+                onChange={(e) => setRepoUrl(e.target.value)}
+                placeholder="github.com/owner/repo"
+                className="flex-1 px-6 py-4 bg-muted border-2 border-border rounded-lg text-foreground placeholder-muted-foreground/50 focus:outline-none focus:border-border transition-all"
+                disabled={isSyncing}
+              />
+              <button
+                type="submit"
+                disabled={isSyncing || !repoUrl.trim()}
+                className="p-4 text-primary hover:text-primary/80 disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:scale-110"
+                aria-label="Submit repository"
+              >
+                {isSyncing ? (
+                  <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                ) : (
+                  <Send className="w-6 h-6" />
+                )}
+              </button>
+            </div>
+
+            {error && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                {error}
+              </div>
+            )}
+          </form>
+
+          {/* Recent/Example Repos */}
+          <div>
+            <p className="text-sm text-muted-foreground mb-3 text-center">
+              Or try these popular repositories
+            </p>
+            <div className="space-y-2">
+              {exampleRepos.map((repo) => (
+                <button
+                  key={repo.name}
+                  onClick={() => handleExampleClick(repo.name)}
+                  disabled={isSyncing}
+                  className="w-full text-left px-4 py-3 rounded-lg border border-border hover:border-primary/50 hover:bg-muted/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed group"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-medium text-foreground group-hover:text-primary transition-colors">
+                        {repo.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {repo.desc}
+                      </p>
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-muted-foreground -rotate-90 group-hover:text-primary transition-colors" />
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="border-b border-border">
         <div className="max-w-5xl mx-auto px-6 py-6">
           <div className="flex items-center justify-between">
-            <div>
-              <div className="flex items-center gap-2 mt-1">
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleBackToHome}
+                className="p-2 rounded-md hover:bg-muted transition-colors"
+                aria-label="Back to home"
+              >
+                <ArrowLeft className="w-5 h-5 text-muted-foreground hover:text-foreground" />
+              </button>
+              <div className="flex items-center gap-2">
                 <p className="text-md text-muted-foreground">
-                  /{HARDCODED_REPO.split("/")[1]}
+                  /{currentRepo.split("/")[1]}
                 </p>
                 <a
-                  href={`https://github.com/${HARDCODED_REPO}`}
+                  href={`https://github.com/${currentRepo}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 px-2 py-1 rounded-md bg-[#47494b] hover:bg-[] transition-colors"
@@ -417,7 +565,7 @@ export default function Home() {
                                     Link:
                                   </span>
                                   <a
-                                    href={`https://github.com/${HARDCODED_REPO}/commit/${commit.commit_id}`}
+                                    href={`https://github.com/${currentRepo}/commit/${commit.commit_id}`}
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="text-xs text-primary hover:underline"
