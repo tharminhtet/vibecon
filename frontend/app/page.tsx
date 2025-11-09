@@ -43,6 +43,7 @@ export default function Home() {
   // Auto-sync on page load
   React.useEffect(() => {
     syncCommits()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const syncCommits = async () => {
