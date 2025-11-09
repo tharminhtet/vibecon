@@ -273,7 +273,10 @@ export default function Home() {
                           onCheckedChange={() => toggleSelect(commit.commit_id)}
                           className="mt-0.5 flex-shrink-0"
                         />
-                        <div className="flex-1 min-w-0">
+                        <div 
+                          className="flex-1 min-w-0 cursor-pointer"
+                          onClick={() => toggleExpand(commit.commit_id)}
+                        >
                           <div className="flex items-baseline gap-2 mb-0.5">
                             <span className="text-xs font-mono text-muted-foreground">
                               {commit.commit_id.slice(0, 7)}
@@ -293,14 +296,15 @@ export default function Home() {
                           </p>
                         </div>
                         <ChevronDown
-                          className={`w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 mt-0.5 ${
+                          className={`w-4 h-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 mt-0.5 cursor-pointer ${
                             expandedCommits.has(commit.commit_id)
                               ? "rotate-180"
                               : ""
                           }`}
+                          onClick={() => toggleExpand(commit.commit_id)}
                         />
                       </div>
-                    </button>
+                    </div>
 
                     {expandedCommits.has(commit.commit_id) && (
                       <div className="mt-2 ml-3 pl-3 border-l-2 border-accent/40 space-y-2">
