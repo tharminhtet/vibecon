@@ -4,6 +4,7 @@ import { useState } from 'react'
 import axios from 'axios'
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8001'
+const HARDCODED_REPO = 'tharminhtet/AiChatIOS'
 
 interface Commit {
   commit_id: string
@@ -18,41 +19,40 @@ interface Topic {
 }
 
 export default function Home() {
-  const [rootLanguage, setRootLanguage] = useState('Python')
-  const [knowledgeTree, setKnowledgeTree] = useState<string>('')
-  const [repoId, setRepoId] = useState('')
   const [sinceCommitId, setSinceCommitId] = useState('')
-  const [branch, setBranch] = useState('main')
   const [commits, setCommits] = useState<Commit[]>([])
   const [selectedCommits, setSelectedCommits] = useState<string[]>([])
+  const [expandedCommits, setExpandedCommits] = useState<Set<string>>(new Set())
   const [topics, setTopics] = useState<Topic[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string>('')
-  const [userInstructions, setUserInstructions] = useState('')
-  const [focusArea, setFocusArea] = useState('')
-
-  const loadKnowledgeBase = async () => {
-    setLoading(true)
-    setError('')
-    try {
-      const response = await axios.get(`${API_URL}/api/knowledge_base/${rootLanguage}`)
-      setKnowledgeTree(response.data.tree_string)
-    } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to load knowledge base')
-    } finally {
-      setLoading(false)
-    }
-  }
+  
+  // Settings state
+  const [showSettings, setShowSettings] = useState(false)
+  const [filters, setFilters] = useState({
+    language: false,
+    frameworks: false,
+    libraries: false
+  })
+  const [customInstructions, setCustomInstructions] = useState('')
+  
+  // Question state for each topic
+  const [topicQuestions, setTopicQuestions] = useState<{[key: number]: string}>({})
 
   const analyzeCommits = async () => {
+    if (!sinceCommitId) {
+      setError('Please enter a commit ID')
+      return
+    }
+
     setLoading(true)
     setError('')
     try {
       const response = await axios.post(`${API_URL}/api/analyze_commits`, {
-        repo_id: repoId,
+        repo_id: HARDCODED_REPO,
         since_commit_id: sinceCommitId,
-        branch: branch,
-        max_commits: 10
+        branch: 'main',
+        max_commits: 20
       })
       setCommits(response.data.commits)
       setSelectedCommits(response.data.commits.map((c: Commit) => c.commit_id))
@@ -72,12 +72,18 @@ export default function Home() {
     setLoading(true)
     setError('')
     try {
+      // Build focus area from filters
+      const focusAreas = []
+      if (filters.language) focusAreas.push('language features')
+      if (filters.frameworks) focusAreas.push('frameworks')
+      if (filters.libraries) focusAreas.push('libraries')
+      
       const response = await axios.post(`${API_URL}/api/generate_topics`, {
-        repo_id: repoId,
+        repo_id: HARDCODED_REPO,
         commit_ids: selectedCommits,
-        root_language: rootLanguage,
-        user_instructions: userInstructions || undefined,
-        focus_area: focusArea || undefined
+        root_language: 'Python',
+        user_instructions: customInstructions || undefined,
+        focus_area: focusAreas.length > 0 ? focusAreas.join(', ') : undefined
       })
       setTopics(response.data.topics)
     } catch (err: any) {
@@ -87,7 +93,7 @@ export default function Home() {
     }
   }
 
-  const saveTopic = async (topic: Topic) => {
+  const saveTopic = async (topic: Topic, index: number) => {
     setLoading(true)
     setError('')
     try {
@@ -99,17 +105,20 @@ export default function Home() {
         description: topic.description,
         parent_id: topic.parent_id,
         parent_temp_id: topic.parent_temp_id,
-        github_link: `https://github.com/${repoId}`
+        github_link: `https://github.com/${HARDCODED_REPO}`
       })
       
-      alert('Topic saved successfully!')
-      // Reload knowledge base
-      await loadKnowledgeBase()
+      // Remove saved topic from list
+      setTopics(prev => prev.filter((_, i) => i !== index))
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to save topic')
     } finally {
       setLoading(false)
     }
+  }
+
+  const skipTopic = (index: number) => {
+    setTopics(prev => prev.filter((_, i) => i !== index))
   }
 
   const toggleCommit = (commitId: string) => {
@@ -120,10 +129,34 @@ export default function Home() {
     )
   }
 
+  const toggleExpandCommit = (commitId: string) => {
+    setExpandedCommits(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(commitId)) {
+        newSet.delete(commitId)
+      } else {
+        newSet.add(commitId)
+      }
+      return newSet
+    })
+  }
+
+  const truncateDescription = (desc: string, maxLength: number = 60) => {
+    if (desc.length <= maxLength) return desc
+    return desc.substring(0, maxLength) + '...'
+  }
+
+  const openChatGPT = (question: string) => {
+    const encodedQuestion = encodeURIComponent(question)
+    window.open(`https://chat.openai.com/?q=${encodedQuestion}`, '_blank')
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">Git Learning Program</h1>
+      <div className="max-w-6xl mx-auto">
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">New Changes in /{HARDCODED_REPO.split('/')[1]}</h1>
+        </div>
 
         {error && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
@@ -131,75 +164,33 @@ export default function Home() {
           </div>
         )}
 
-        {/* Knowledge Base Section */}
+        {/* Commit Input Section */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-2xl font-semibold mb-4">Knowledge Base</h2>
-          <div className="flex gap-4 mb-4">
-            <input
-              type="text"
-              value={rootLanguage}
-              onChange={(e) => setRootLanguage(e.target.value)}
-              placeholder="Root Language (e.g., Python)"
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-            <button
-              onClick={loadKnowledgeBase}
-              disabled={loading}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
-            >
-              {loading ? 'Loading...' : 'Load Knowledge Base'}
-            </button>
-          </div>
-          {knowledgeTree && (
-            <div className="bg-gray-900 text-green-400 p-4 rounded-lg overflow-x-auto">
-              <pre className="tree-view">{knowledgeTree}</pre>
-            </div>
-          )}
-        </div>
-
-        {/* Commit Analysis Section */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-2xl font-semibold mb-4">Analyze Commits</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-            <input
-              type="text"
-              value={repoId}
-              onChange={(e) => setRepoId(e.target.value)}
-              placeholder="Repository (e.g., owner/repo)"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+          <div className="flex gap-4">
             <input
               type="text"
               value={sinceCommitId}
               onChange={(e) => setSinceCommitId(e.target.value)}
-              placeholder="Since Commit ID"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              placeholder="last sync — Enter commit ID to start from"
+              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            <input
-              type="text"
-              value={branch}
-              onChange={(e) => setBranch(e.target.value)}
-              placeholder="Branch (default: main)"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
+            <button
+              onClick={analyzeCommits}
+              disabled={loading || !sinceCommitId}
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
+            >
+              {loading ? 'Loading...' : 'Load Commits'}
+            </button>
           </div>
-          <button
-            onClick={analyzeCommits}
-            disabled={loading || !repoId || !sinceCommitId}
-            className="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-          >
-            {loading ? 'Analyzing...' : 'Analyze Commits'}
-          </button>
+        </div>
 
-          {commits.length > 0 && (
-            <div className="mt-6">
-              <h3 className="text-xl font-semibold mb-3">Found Commits:</h3>
-              <div className="space-y-2 max-h-96 overflow-y-auto">
-                {commits.map((commit) => (
-                  <div
-                    key={commit.commit_id}
-                    className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50"
-                  >
+        {/* Commits List */}
+        {commits.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <div className="space-y-2">
+              {commits.map((commit, index) => (
+                <div key={commit.commit_id} className="border-b border-gray-200 pb-2">
+                  <div className="flex items-start gap-3">
                     <input
                       type="checkbox"
                       checked={selectedCommits.includes(commit.commit_id)}
@@ -207,77 +198,140 @@ export default function Home() {
                       className="mt-1"
                     />
                     <div className="flex-1">
-                      <div className="font-mono text-sm text-gray-600">
-                        {commit.commit_id.substring(0, 8)}
+                      <div className="text-sm text-gray-500">
+                        {index === 0 && 'newest commit'} {index === commits.length - 1 && 'last sync'} {index > 0 && index < commits.length - 1 && index} — 
                       </div>
-                      <div className="text-gray-900">{commit.description}</div>
+                      <div 
+                        className="text-gray-900 cursor-pointer hover:text-blue-600"
+                        onClick={() => toggleExpandCommit(commit.commit_id)}
+                      >
+                        {expandedCommits.has(commit.commit_id) 
+                          ? commit.description 
+                          : truncateDescription(commit.description)
+                        }
+                      </div>
+                    </div>
+                    <div className="text-xs text-gray-400 font-mono">
+                      {commit.commit_id.substring(0, 7)} - [Github logo]
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
 
-        {/* Generate Topics Section */}
-        {commits.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-2xl font-semibold mb-4">Generate Learning Topics</h2>
-            <div className="space-y-4 mb-4">
-              <textarea
-                value={userInstructions}
-                onChange={(e) => setUserInstructions(e.target.value)}
-                placeholder="Special instructions (optional)..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                rows={3}
-              />
-              <input
-                type="text"
-                value={focusArea}
-                onChange={(e) => setFocusArea(e.target.value)}
-                placeholder="Focus area (e.g., frameworks, language features)"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
+            {/* Generate Button and Settings */}
+            <div className="mt-6 flex gap-4">
+              <button
+                onClick={generateTopics}
+                disabled={loading || selectedCommits.length === 0}
+                className="flex-1 px-6 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 disabled:bg-gray-400"
+              >
+                {loading ? 'Generating...' : 'Generate new knowledge'}
+              </button>
+              <button
+                onClick={() => setShowSettings(!showSettings)}
+                className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+              >
+                Settings
+              </button>
             </div>
-            <button
-              onClick={generateTopics}
-              disabled={loading || selectedCommits.length === 0}
-              className="w-full px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-400"
-            >
-              {loading ? 'Generating...' : `Generate Topics from ${selectedCommits.length} commit(s)`}
-            </button>
+
+            {/* Settings Panel */}
+            {showSettings && (
+              <div className="mt-4 p-4 border border-gray-300 rounded-lg bg-gray-50">
+                <h3 className="font-semibold mb-3">Filters</h3>
+                <div className="space-y-2 mb-4">
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.language}
+                      onChange={(e) => setFilters(prev => ({...prev, language: e.target.checked}))}
+                    />
+                    <span>Language</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.frameworks}
+                      onChange={(e) => setFilters(prev => ({...prev, frameworks: e.target.checked}))}
+                    />
+                    <span>Frameworks</span>
+                  </label>
+                  <label className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={filters.libraries}
+                      onChange={(e) => setFilters(prev => ({...prev, libraries: e.target.checked}))}
+                    />
+                    <span>Libraries</span>
+                  </label>
+                </div>
+                <textarea
+                  value={customInstructions}
+                  onChange={(e) => setCustomInstructions(e.target.value)}
+                  placeholder="Enter custom instructions..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
+                />
+              </div>
+            )}
           </div>
         )}
 
-        {/* Topics Display */}
+        {/* Generated Topics */}
         {topics.length > 0 && (
           <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-2xl font-semibold mb-4">Generated Topics</h2>
-            <div className="space-y-4">
+            <h2 className="text-2xl font-bold mb-6">Python</h2>
+            <div className="space-y-6">
               {topics.map((topic, index) => (
-                <div
-                  key={index}
-                  className="border border-gray-200 rounded-lg p-4 hover:border-blue-300"
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <div>
-                      <div className="font-semibold text-lg text-blue-600">{topic.path}</div>
-                      {topic.parent_id && (
-                        <div className="text-sm text-gray-500">Parent ID: {topic.parent_id}</div>
-                      )}
-                      {topic.parent_temp_id && (
-                        <div className="text-sm text-orange-500">Temp Parent ID: {topic.parent_temp_id}</div>
-                      )}
+                <div key={index} className="border-l-4 border-gray-300 pl-4">
+                  <div className="mb-2">
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      &gt; {topic.path.split('/').slice(1).join(' / ')}
+                    </h3>
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        onClick={() => saveTopic(topic, index)}
+                        disabled={loading}
+                        className="px-4 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:bg-gray-100 text-sm"
+                      >
+                        Learned
+                      </button>
+                      <button
+                        onClick={() => skipTopic(index)}
+                        className="px-4 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm"
+                      >
+                        Not now
+                      </button>
                     </div>
+                  </div>
+                  
+                  <div className="text-gray-700 mb-3 whitespace-pre-wrap">
+                    {topic.description}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={topicQuestions[index] || ''}
+                      onChange={(e) => setTopicQuestions(prev => ({...prev, [index]: e.target.value}))}
+                      placeholder="Ask follow up question..."
+                      className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
                     <button
-                      onClick={() => saveTopic(topic)}
-                      disabled={loading}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm"
+                      onClick={() => {
+                        const question = topicQuestions[index]
+                        if (question) {
+                          openChatGPT(`${question}\n\nContext: ${topic.description}`)
+                        }
+                      }}
+                      disabled={!topicQuestions[index]}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 text-sm flex items-center gap-2"
                     >
-                      Save
+                      chat_gpt
+                      <span className="text-xs">include</span>
                     </button>
                   </div>
-                  <div className="text-gray-700 whitespace-pre-wrap">{topic.description}</div>
                 </div>
               ))}
             </div>
