@@ -100,27 +100,27 @@ export default function TopicViewer({ topic, onSave, onSkip }: TopicViewerProps)
   return (
     <div className="space-y-12 max-w-3xl">
       <div className="space-y-2">
-        <h2 className="text-4xl font-light tracking-tight text-foreground">{topicName}</h2>
-        <p className="text-sm text-muted-foreground font-light">{topic.path}</p>
+        <h2 className="text-2xl font-semibold tracking-tight text-foreground">{topicName}</h2>
+        <p className="text-sm text-muted-foreground">{topic.path}</p>
       </div>
 
       <Tabs defaultValue="explain" className="w-full max-w-3xl">
         <TabsList className="grid w-full grid-cols-3 bg-transparent border-b border-border p-0 h-auto gap-8">
           <TabsTrigger
             value="explain"
-            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px] transition-all duration-200"
+            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 text-sm w-[150px] transition-all duration-200"
           >
             Explanation
           </TabsTrigger>
           <TabsTrigger
             value="code"
-            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px] transition-all duration-200"
+            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 text-sm w-[150px] transition-all duration-200"
           >
             Code
           </TabsTrigger>
           <TabsTrigger
             value="usecases"
-            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 font-light text-sm w-[150px] transition-all duration-200"
+            className="rounded-none border border-transparent data-[state=active]:border-primary data-[state=active]:border-t data-[state=active]:border-l data-[state=active]:border-r data-[state=active]:border-b-[3px] bg-transparent px-0 py-3 text-sm w-[150px] transition-all duration-200"
           >
             Use Cases
           </TabsTrigger>
